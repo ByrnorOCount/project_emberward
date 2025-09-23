@@ -3,8 +3,11 @@
 ## Flow recap
 
 Start Menu → click Play → calls start_new_run() → goes to Map Screen
+
 Map Screen → player chooses next node → loads fight map via load_map_layout()
+
 Fight Map → spawn waves → player places pieces/towers, defends core → on victory → return to Map Screen
+
 Core HP persists → losing all HP ends run → back to Start Menu
 
 ## Flow pt 2
