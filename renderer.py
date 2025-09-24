@@ -1,6 +1,8 @@
 import pygame
 from grid import EMPTY, OBSTACLE, TOWER, cell_center
 
+# SEPARATE LATER INTO A FOLDER LIKE scene/
+
 def cell_rect(x, y, cell_size):
     """Returns the rect tuple for a cell at (x, y)."""
     return (x * cell_size, y * cell_size, cell_size, cell_size)
@@ -24,18 +26,18 @@ def draw_piece_preview(surf, gx, gy, cells, cell_size, valid):
         pygame.draw.rect(surf, color, ((gx + x) * cell_size, (gy + y) * cell_size, cell_size, cell_size), 2)
     
 def draw_enemies(surf, enemies, cell_size):
-    """Draws all enemies as circles or sprites on the grid."""
+    """Draw enemies as circles or sprites on the grid."""
     for e in enemies:
-        if not e['path']:
+        if not e.path:
             continue
-        x, y = e['path'][0]
+        x, y = e.path[0] if e.path else e.pos
         px, py = cell_center(x, y, cell_size)
         pygame.draw.circle(surf, (255, 200, 50), (px, py), cell_size // 3)
-    
+
 def draw_towers(surf, towers, cell_size):
-    """Draws towers at their locations."""
-    for x, y in towers:
-        pygame.draw.rect(surf, (255, 0, 0), cell_rect(x, y, cell_size))
+    """Draw towers at their locations."""
+    for t in towers:
+        pygame.draw.rect(surf, (255, 0, 0), cell_rect(t.x, t.y, cell_size))
     
 def draw_dashed_path(surf, path, cell_size, dash_len=8, gap_len=6):
     """Draws a dashed line along the enemy's A* path."""

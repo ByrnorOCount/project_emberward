@@ -1,20 +1,24 @@
 # Remember to update whenever a new function/file is added
 
 # main.py
-def show_start_menu(screen):
-    """Displays title, Play, Options, Quit buttons; handles clicks to transition."""
-def show_map_screen(screen, run_state):
-    """Displays roguelite map with nodes and paths; lets player pick next node."""
-def start_new_run():
-    """Initializes run state: core HP, gold, node map, starting node."""
-def main():
-    """Main entry: sets up pygame, run loop, handles flow between menu/map/fights."""
-def handle_input(events, game):
-    """Processes mouse/keyboard events for piece/tower placement, zoom, quitting."""
-def update(game, dt):
-    """Updates enemies, towers, paths, run state transitions, etc."""
-def render(screen, game):
-    """Draws current scene (menu/map/fight) based on game state."""
+class Game:
+    def change_scene(self, new_scene):
+        """Replace current scene with a new one."""
+    def run(self):
+        """Main game loop."""
+
+# scenes/menu.py
+class MenuScene:
+    def handle_input(self, events):
+        """Handles input events from user."""
+    def update(self, dt):
+        """Updates game state."""
+    def render(self, screen):
+        """Renders the game scene."""
+# scenes/map.py
+    # Same deal
+# scenes/fight.py
+    # Same deal
 
 # grid.py
 def create_grid(w, h):
@@ -49,32 +53,38 @@ def astar(grid, start, goal):
     """Computes shortest path from start to goal using A* on grid."""
 
 # enemy.py
-def create_enemy(start, goal):
-    """Creates an enemy dict/object with position, path, speed."""
-def set_enemy_path(enemy, path):
-    """Assigns a new path to enemy and resets progress along it."""
-def update_enemy(enemy, dt):
-    """Moves enemy along its path over time."""
-def enemy_reached_goal(enemy):
-    """Returns True if enemy has arrived at goal cell."""
+class Enemy:
+    def set_path(self, path):
+        """Assign a new path and reset progress."""
+    def update(self, dt):
+        """Move along the path according to speed."""
+    def reached_goal(self):
+        """True if this enemy has arrived at its goal."""
+    def is_dead(self):
+        pass
 def recompute_enemy_paths(enemies, grid, goal):
-    """Recomputes paths for all enemies after grid change."""
-def spawn_wave(enemies, spawn_points, goal, wave_config):
-    """Spawns a wave of enemies at multiple spawn points with given config."""
+    """Recompute paths for all enemies."""
+def spawn_wave(spawn_points, goal, wave_config):
+    """
+    Create a wave of enemies.
+    wave_config: list of dicts, e.g.
+    [{"hp": 50, "speed": 4, "gold": 5}, {"hp": 200, "speed": 2, "gold": 20}]
+    """
 def update_enemies(enemies, dt, goal):
-    """Moves all enemies; returns list of enemies reaching the goal."""
+    """Update all enemies; return list of enemies that reached the goal."""
 
 # tower.py
+class Tower:
+    def in_range(self, enemy):
+        """True if the enemy is in range of this tower."""
+    def update(self, enemies, dt):
+        """Attack enemies if cooldown is ready."""
 def can_place_tower(grid, x, y):
-    """Checks if a tower can be placed on given cell (must be a placeable obstacle aka the tetris pieces)."""
+    pass
 def place_tower(grid, x, y, towers):
-    """Marks cell as TOWER and creates tower object."""
-def get_enemies_in_range(tower, enemies):
-    """Returns a list of enemies within a tower's attack range."""
+    pass
 def update_towers(towers, enemies, dt):
-    """Handles tower logic: target enemies, shoot projectiles, etc."""
-def upgrade_tower(tower):
-    """Upgrades tower stats if player has enough gold."""
+    pass
 
 # renderer.py
 def cell_rect(x, y, cell_size):
