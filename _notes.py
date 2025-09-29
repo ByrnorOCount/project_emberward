@@ -94,15 +94,17 @@ def draw_grid(surf, grid, cell_size):
 def draw_piece_preview(surf, gx, gy, cells, cell_size, valid):
     """Draws a ghost/preview version of a piece at mouse position with color based on validity."""
 def draw_enemies(surf, enemies, cell_size):
-    """Draws all enemies as circles or sprites on the grid."""
+    """Draw enemies as circles or sprites on the grid."""
 def draw_towers(surf, towers, cell_size):
-    """Draws towers at their locations."""
+    """Draw towers at their locations with different visuals by tower_type."""
 def draw_dashed_path(surf, path, cell_size, dash_len=8, gap_len=6):
     """Draws a dashed line along the enemy's A* path."""
-def draw_arrowhead(surf, start, end, color):
-    """Draws a small arrowhead at the end of a path segment."""
+def make_rainbow_surface(size):
+    """Create a horizontal rainbow gradient surface, rotated diagonally."""
+def draw_grid_background(surf, cell_size=64):
+    """Draws a subtle gray grid background."""
 def draw_menu(surf, buttons):
-    """Draws start menu UI with clickable buttons."""
+    """Draws animated start menu with title and interactive buttons."""
 def draw_map_screen(surf, run_state):
     """Draws roguelite map nodes, connections, and player progress."""
 def draw_info_bars(surf, run_state):

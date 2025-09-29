@@ -1,3 +1,5 @@
+# TODO Add option to switch between search algos to compare to A*
+
 from heapq import heappush, heappop
 from grid import is_walkable, get_neighbors4
 

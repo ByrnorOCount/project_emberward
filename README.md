@@ -86,3 +86,12 @@ Use integer grid coords for A* to keep it fast.
 Conveyor obstacles (special obstacle cell type that forces direction) to actively redirect enemies instead of just blocking — would require adding directional edges or movement penalty modifiers.
 Enemy formation smoothing: enemy follows path centers but avoid overlapping using simple separation steering.
 Tower upgrades, projectile visuals, damage, and range circle.
+
+
+Move mouse over map and press the piece placement key (default is: no toggle, just left-click to place pieces).
+
+Press T to toggle tower placement and use 1/2/3 to pick tower type and place towers on player-placed tiles.
+
+Click "Start Wave" in the right sidebar to spawn the next wave.
+
+Pan/zoom with right mouse drag + mousewheel (or +/- keys).
