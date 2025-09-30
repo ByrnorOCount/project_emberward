@@ -59,7 +59,6 @@ def spawn_wave(spawn_points, goal, wave_config):
             enemies.append(e)
     return enemies
 
-
 def update_enemies(enemies, dt, goal):
     """Update all enemies; return list of enemies that reached the goal."""
     reached = []

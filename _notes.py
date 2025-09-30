@@ -77,16 +77,24 @@ def update_enemies(enemies, dt, goal):
 
 # tower.py
 class Tower:
+    def _name_for_type(self, t):
+        pass
     def in_range(self, enemy):
-        """True if the enemy is in range of this tower."""
+        """Distance uses grid units (cells). Enemy.pos is (x,y) in grid coords."""
+    def get_stats(self):
+        pass
     def update(self, enemies, dt):
-        """Attack enemies if cooldown is ready."""
+        """
+        Called each frame. If cooldown finished and there is a target,
+        produce a Projectile instance (not applied to enemies directly).
+        Returns: Projectile instance or None.
+        """
 def can_place_tower(grid, x, y):
     pass
 def place_tower(grid, x, y, towers):
     pass
 def update_towers(towers, enemies, dt):
-    pass
+    """Update towers; append spawned projectiles into projectiles list."""
 
 # render/fight.py
 def cell_rect(x, y, cell_size):
