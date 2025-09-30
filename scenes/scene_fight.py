@@ -4,7 +4,7 @@ from piece import get_piece_shapes, rotate_piece, can_place_piece, get_absolute_
 from astar import astar
 from enemy import update_enemies, spawn_wave, recompute_enemy_paths
 from tower import Tower, can_place_tower, place_tower, update_towers
-from render.fight import draw_zoomed_map, draw_tower_preview, draw_piece_preview, tower_list_click_test, sidebar_click_test, draw_projectiles, draw_sidebar, draw_tower_range
+from render.render_fight import draw_zoomed_map, draw_tower_preview, draw_piece_preview, tower_list_click_test, sidebar_click_test, draw_projectiles, draw_sidebar, draw_tower_range
 
 class FightScene:
     def __init__(self, game, run_state):
@@ -118,7 +118,7 @@ class FightScene:
                 elif e.key == pygame.K_MINUS:
                     self.camera["zoom"] = max(0.6, self.camera["zoom"] - 0.1)
                 elif e.key == pygame.K_ESCAPE:
-                    from map import MapScene
+                    from scenes.scene_map import MapScene
                     self.game.change_scene(MapScene(self.game, self.run_state))
 
             elif e.type == pygame.MOUSEWHEEL:
@@ -263,16 +263,41 @@ class FightScene:
     def render(self, screen):
         screen.fill((18, 18, 18))
 
-        # draw the zoomed map (grid, enemies, towers, projectiles)
-        draw_zoomed_map(screen, self.grid, self.camera,
-                                      enemies=self.enemies, towers=self.towers,
-                                      projectiles=self.projectiles,
-                                      draw_path=(self.enemies[0].path if self.enemies else None))
+        # Step 1: compute preview path/validity
+        preview_path = astar(self.grid, self.start, self.goal)  # default: current path
+        preview_valid = True
 
-        # draw core at goal
+        mx, my = pygame.mouse.get_pos()
+        mouse_gx, mouse_gy = self.screen_to_grid(mx, my)
+        if mouse_gx is not None and not self.placing_tower and self.current_piece_key is not None:
+            shape = self.pieces[self.current_piece_key]
+            rotated = rotate_piece(shape, self.rotation)
+            valid = can_place_piece(self.grid, mouse_gx, mouse_gy, rotated, self.start, self.goal)
+            if valid:
+                from copy import deepcopy
+                test_grid = deepcopy(self.grid)
+                cells = get_absolute_cells(mouse_gx, mouse_gy, rotated)
+                set_cells(test_grid, cells, OBSTACLE)
+                new_path = astar(test_grid, self.start, self.goal)
+                if new_path:
+                    preview_path = new_path
+                    preview_valid = True
+                else:
+                    preview_valid = False
+            else:
+                preview_valid = False
+
+        # Step 2: draw map with path
+        draw_zoomed_map(screen, self.grid, self.camera,
+            enemies=self.enemies, towers=self.towers,
+            projectiles=self.projectiles,
+            draw_path=preview_path, path_valid=preview_valid
+        )
+
+        # Step 3: draw core icon
         cs = int(self.camera["cell_size"] * self.camera["zoom"])
-        gx, gy = self.goal
-        cx, cy = cell_center(gx, gy, cs)
+        goal_gx, goal_gy = self.goal
+        cx, cy = cell_center(goal_gx, goal_gy, cs)
         sx = cx + self.camera["offset_x"]
         sy = cy + self.camera["offset_y"]
         pygame.draw.circle(screen, (180, 60, 60), (int(sx), int(sy)), max(6, cs//4))
@@ -280,54 +305,47 @@ class FightScene:
         txt = font.render(str(self.run_state.get("core_hp", 0)), True, (255,255,255))
         screen.blit(txt, (int(sx - txt.get_width()//2), int(sy - txt.get_height()//2)))
 
-        # draw preview: either piece preview or tower preview
-        mx,my = pygame.mouse.get_pos()
-        gx, gy = self.screen_to_grid(mx, my)
-        if gx is not None:
+        # Step 4: draw preview overlays
+        if mouse_gx is not None:
             if self.placing_tower:
-                valid = can_place_tower(self.grid, gx, gy)
-                # call renderer helper to draw tower ghost + range circle
-                draw_tower_preview(screen, gx, gy, self.selected_tower_type,
-                                                  cell_size=self.camera["cell_size"], valid=valid, camera=self.camera)
-                # also draw range circle centered at preview tower
+                valid = can_place_tower(self.grid, mouse_gx, mouse_gy)
+                draw_tower_preview(screen, mouse_gx, mouse_gy, self.selected_tower_type,
+                                   cell_size=self.camera["cell_size"], valid=valid, camera=self.camera)
                 if valid:
-                    # create a tiny temporary tower-like object for drawing range circle (or pass raw coords & range)
-                    preview_temp = type("Tmp", (), {})()
-                    preview_temp.x = gx
-                    preview_temp.y = gy
-                    # use tower stat presets to determine range (instantiate ephemeral)
-                    tmp_t = Tower(gx, gy, tower_type=self.selected_tower_type)
-                    draw_tower_range(screen, tmp_t, cell_size=self.camera["cell_size"], camera=self.camera, color=(255,255,255,80))
-            else:
-                # piece preview
-                if self.current_piece_key is not None:
-                    shape = self.pieces[self.current_piece_key]
-                    rotated = rotate_piece(shape, self.rotation)
-                    valid = can_place_piece(self.grid, gx, gy, rotated, self.start, self.goal)
-                    # renderer has a function to draw a piece preview on top of map
-                    draw_piece_preview(screen, gx, gy, rotated,
-                                                              cell_size=self.camera["cell_size"],
-                                                              valid=valid,
-                                                              camera=self.camera)
+                    tmp_t = Tower(mouse_gx, mouse_gy, tower_type=self.selected_tower_type)
+                    draw_tower_range(screen, tmp_t, cell_size=self.camera["cell_size"],
+                                     camera=self.camera, color=(255,255,255,80))
+            elif self.current_piece_key is not None:
+                shape = self.pieces[self.current_piece_key]
+                rotated = rotate_piece(shape, self.rotation)
+                valid = can_place_piece(self.grid, mouse_gx, mouse_gy, rotated, self.start, self.goal)
+                draw_piece_preview(screen, mouse_gx, mouse_gy, rotated,
+                                   cell_size=self.camera["cell_size"],
+                                   valid=valid,
+                                   camera=self.camera)
 
-        # draw range circle for hovered or selected towers
+        # Step 5: range circles
         if self.hover_tower:
-            draw_tower_range(screen, self.hover_tower, cell_size=self.camera["cell_size"], camera=self.camera, color=(255,255,255,90))
+            draw_tower_range(screen, self.hover_tower,
+                             cell_size=self.camera["cell_size"],
+                             camera=self.camera, color=(255,255,255,90))
         if self.clicked_tower and self.clicked_tower is not self.hover_tower:
-            draw_tower_range(screen, self.clicked_tower, cell_size=self.camera["cell_size"], camera=self.camera, color=(255,220,80,110))
+            draw_tower_range(screen, self.clicked_tower,
+                             cell_size=self.camera["cell_size"],
+                             camera=self.camera, color=(255,220,80,110))
 
-        # draw projectiles on top
-        draw_projectiles(screen, self.projectiles, cell_size=self.camera["cell_size"], camera=self.camera)
+        # Step 6: projectiles
+        draw_projectiles(screen, self.projectiles,
+                         cell_size=self.camera["cell_size"], camera=self.camera)
 
-        # update run_state values for sidebar
+        # Step 7: sidebar
         self.run_state["wave_index"] = self.current_wave_index
         self.run_state["wave_total"] = len(self.waves)
         self.run_state["phase"] = self.phase
         self.run_state["deck_count"] = len(self.deck)
         self.run_state["selected_tower_type"] = self.selected_tower_type
 
-        # draw sidebar (renders tower list, top info, deck, tower stat panel)
         draw_sidebar(screen, self.run_state, selected_tower=self.clicked_tower)
 
-        # flip
+        # Step 8: flip
         pygame.display.flip()

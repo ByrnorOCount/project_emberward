@@ -1,5 +1,5 @@
 import pygame
-from .menu import draw_grid_background
+from .render_menu import draw_grid_background
 
 def draw_map_screen(surf, run_state):
     """Draws roguelite map nodes, connections, and player progress (simple single-node)."""

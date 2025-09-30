@@ -101,18 +101,22 @@ def cell_rect(x, y, cell_size):
     """Returns the rect tuple for a cell at (x, y)."""
 def draw_grid(surf, grid, cell_size):
     """Draws the grid cells (empty, obstacle, tower) on the screen."""
-def draw_piece_preview(surf, gx, gy, cells, cell_size, valid):
-    """Draws a ghost/preview version of a piece at mouse position with color based on validity."""
-def draw_enemies(surf, enemies, cell_size):
-    """Draw enemies as circles or sprites on the grid."""
-def draw_towers(surf, towers, cell_size):
-    """Draw towers at their locations with different visuals by tower_type."""
-def draw_dashed_path(surf, path, cell_size, dash_len=8, gap_len=6):
-    """Draws a dashed line along the enemy's A* path."""
-def draw_info_bars(surf, run_state):
-    """Draws sidebars with core HP, gold, wave info, etc."""
-def draw_zoomed_map(surf, grid, camera):
+def draw_zoomed_map(surf, grid, camera, enemies=None, towers=None, projectiles=None, draw_path=None):
     """Draws map with camera zoom and panning applied."""
+def draw_tower_preview(surf, gx, gy, tower_type, cell_size, valid, camera):
+    """Draws a ghost/preview version of a tower at mouse position with color based on validity."""
+def draw_piece_preview(surf, gx, gy, rotated_cells, cell_size, valid, camera):
+    """Draws a ghost/preview version of a piece at mouse position with color based on validity."""
+def draw_tower_range(surf, tower, cell_size, camera, color=(255,255,255,80)):
+    pass
+def draw_projectiles(surf, projectiles, cell_size, camera):
+    pass
+def draw_sidebar(surf, run_state, selected_tower=None):
+    pass
+def sidebar_click_test(surf, mx, my):
+    """Returns the name of the sidebar element that was clicked."""
+def tower_list_click_test(surf, mx, my):
+    """Returns the index of the tower that was clicked."""
 # render/menu.py
 def make_rainbow_surface(size):
     """Create a horizontal rainbow gradient surface, rotated diagonally."""

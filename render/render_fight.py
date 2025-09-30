@@ -20,17 +20,37 @@ def draw_grid(surf, grid, cell_size):
             pygame.draw.rect(surf, colors.get(val, (60,60,60)), cell_rect(x, y, cell_size))
             pygame.draw.rect(surf, (80, 80, 80), cell_rect(x, y, cell_size), 1)
 
-def draw_zoomed_map(surf, grid, camera, enemies=None, towers=None, projectiles=None, draw_path=None):
+def draw_zoomed_map(surf, grid, camera, enemies=None, towers=None, projectiles=None, draw_path=None, path_valid=True):
     """Draw the fight grid, enemies, towers, projectiles at zoomed scale with camera offset."""
     cs = int(camera["cell_size"] * camera["zoom"])
     gw, gh = len(grid[0]), len(grid)
     temp = pygame.Surface((gw * cs, gh * cs))
     draw_grid(temp, grid, cs)
 
-    # path (optional)
+    # path (TODO: change to dashed, keep it constant during fight including prep and fight phases)
+    # if draw_path and len(draw_path) > 1:
+    #     pts = [cell_center(x, y, cs) for x, y in draw_path]
+    #     pygame.draw.lines(temp, (255, 255, 0), False, pts, 2)
     if draw_path and len(draw_path) > 1:
         pts = [cell_center(x, y, cs) for x, y in draw_path]
-        pygame.draw.lines(temp, (255, 255, 0), False, pts, 2)
+        # Dashed line
+        dash_len = 10
+        gap_len = 6
+        color = (255, 255, 0) if path_valid else (255, 60, 60)
+        for i in range(len(pts) - 1):
+            x1, y1 = pts[i]
+            x2, y2 = pts[i + 1]
+            dx, dy = x2 - x1, y2 - y1
+            dist = (dx**2 + dy**2) ** 0.5
+            if dist == 0:
+                continue
+            nx, ny = dx / dist, dy / dist
+            seg = 0
+            while seg < dist:
+                start = (x1 + nx * seg, y1 + ny * seg)
+                end = (x1 + nx * min(seg + dash_len, dist), y1 + ny * min(seg + dash_len, dist))
+                pygame.draw.line(temp, color, start, end, 2)
+                seg += dash_len + gap_len
 
     # enemies
     if enemies:
@@ -80,6 +100,7 @@ def draw_zoomed_map(surf, grid, camera, enemies=None, towers=None, projectiles=N
 # Tower previews / range / projectiles
 # -----------------------------
 def draw_tower_preview(surf, gx, gy, tower_type, cell_size, valid, camera):
+    """Draws a ghost/preview version of a tower at mouse position with color based on validity."""
     cs = int(cell_size * camera["zoom"])
     cx = gx * cs + cs // 2 + camera["offset_x"]
     cy = gy * cs + cs // 2 + camera["offset_y"]
@@ -98,6 +119,7 @@ def draw_tower_preview(surf, gx, gy, tower_type, cell_size, valid, camera):
     surf.blit(txt, (cx - txt.get_width() // 2, rect.top - 12))
 
 def draw_piece_preview(surf, gx, gy, rotated_cells, cell_size, valid, camera):
+    """Draws a ghost/preview version of a piece at mouse position with color based on validity."""
     cs = int(cell_size * camera["zoom"])
     color = (0, 255, 0) if valid else (255, 0, 0)
     for x, y in rotated_cells:
@@ -190,6 +212,7 @@ def draw_sidebar(surf, run_state, selected_tower=None):
 # Click detection helpers
 # -----------------------------
 def sidebar_click_test(surf, mx, my):
+    """Returns the name of the sidebar element that was clicked."""
     if _sidebar_rects["start_wave"] and _sidebar_rects["start_wave"].collidepoint(mx, my):
         return "start_wave"
     if _sidebar_rects["tower_panel"] and _sidebar_rects["tower_panel"].collidepoint(mx, my):
@@ -200,6 +223,7 @@ def sidebar_click_test(surf, mx, my):
     return None
 
 def tower_list_click_test(surf, mx, my):
+    """Returns the index of the tower that was clicked."""
     for idx, rect in _sidebar_rects["tower_list"]:
         if rect.collidepoint(mx, my):
             return idx

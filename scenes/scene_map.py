@@ -1,6 +1,6 @@
 import sys, pygame
-from render.map import draw_map_screen
-from .fight import FightScene
+from render.render_map import draw_map_screen
+from .scene_fight import FightScene
 
 class MapScene:
     def __init__(self, game, run_state):

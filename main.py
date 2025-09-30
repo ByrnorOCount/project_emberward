@@ -1,5 +1,5 @@
 import pygame
-from scenes.menu import MenuScene
+from scenes.scene_menu import MenuScene
 
 CELL_SIZE = 32
 GRID_W, GRID_H = 30, 20

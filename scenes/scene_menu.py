@@ -1,7 +1,7 @@
 import sys, pygame
-from render.menu import draw_menu
+from render.render_menu import draw_menu
 from run_state import create_run_state
-from .map import MapScene
+from .scene_map import MapScene
 
 class MenuScene:
     def __init__(self, game):
