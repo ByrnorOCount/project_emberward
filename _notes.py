@@ -41,6 +41,8 @@ def get_piece_shapes():
     """Returns dictionary of tetris-shaped pieces (list of relative coords)."""
 def rotate_piece(cells, rotation):
     """Rotates a piece's relative cell coordinates by 90° increments."""
+def is_path_blocked(grid, cells, start, goal):
+    """Check if placing cells on grid would block path from start to goal."""
 def can_place_piece(grid, gx, gy, cells):
     """Checks if piece fits legally at grid position (inside bounds, no collision)."""
 def get_absolute_cells(gx, gy, cells):
@@ -68,7 +70,7 @@ def spawn_wave(spawn_points, goal, wave_config):
     """
     Create a wave of enemies.
     wave_config: list of dicts, e.g.
-    [{"hp": 50, "speed": 4, "gold": 5}, {"hp": 200, "speed": 2, "gold": 20}]
+    [{"hp": 50, "speed": 4, "gold": 5, "etype": "fast"}, {"hp": 200, "speed": 2, "gold": 20, "etype": "tank"}]
     """
 def update_enemies(enemies, dt, goal):
     """Update all enemies; return list of enemies that reached the goal."""
@@ -86,7 +88,7 @@ def place_tower(grid, x, y, towers):
 def update_towers(towers, enemies, dt):
     pass
 
-# renderer.py
+# render/fight.py
 def cell_rect(x, y, cell_size):
     """Returns the rect tuple for a cell at (x, y)."""
 def draw_grid(surf, grid, cell_size):
@@ -99,21 +101,31 @@ def draw_towers(surf, towers, cell_size):
     """Draw towers at their locations with different visuals by tower_type."""
 def draw_dashed_path(surf, path, cell_size, dash_len=8, gap_len=6):
     """Draws a dashed line along the enemy's A* path."""
+def draw_info_bars(surf, run_state):
+    """Draws sidebars with core HP, gold, wave info, etc."""
+def draw_zoomed_map(surf, grid, camera):
+    """Draws map with camera zoom and panning applied."""
+# render/menu.py
 def make_rainbow_surface(size):
     """Create a horizontal rainbow gradient surface, rotated diagonally."""
 def draw_grid_background(surf, cell_size=64):
     """Draws a subtle gray grid background."""
 def draw_menu(surf, buttons):
     """Draws animated start menu with title and interactive buttons."""
+# render/map.py
 def draw_map_screen(surf, run_state):
     """Draws roguelite map nodes, connections, and player progress."""
-def draw_info_bars(surf, run_state):
-    """Draws sidebars with core HP, gold, wave info, etc."""
-def draw_zoomed_map(surf, grid, camera):
-    """Draws map with camera zoom and panning applied."""
 
 # run_state.py
 def create_run_state():
     """Initializes core HP, gold, node map, player position, etc."""
 def advance_to_next_node(run_state, node_id):
     """Moves player to the chosen node and loads its map layout."""
+
+# projectile.py
+class Projectile:
+    """
+    Projectile tracks a moving projectile from a source (world coords x,y)
+    to a target enemy object. Coordinates are in grid-space (cells),
+    not pixels. FightScene will use camera.cell_size to turn into pixels.
+    """

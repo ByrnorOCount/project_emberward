@@ -1,5 +1,5 @@
 import sys, pygame
-from renderer import draw_menu
+from render.menu import draw_menu
 from run_state import create_run_state
 from .map import MapScene
 

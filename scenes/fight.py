@@ -4,7 +4,7 @@ from piece import get_piece_shapes, rotate_piece, can_place_piece, get_absolute_
 from astar import astar
 from enemy import Enemy, update_enemies, spawn_wave, recompute_enemy_paths
 from tower import can_place_tower, place_tower, update_towers
-from renderer import draw_grid, draw_piece_preview, draw_enemies, draw_towers, draw_dashed_path, draw_zoomed_map, draw_info_bars
+from render.fight import draw_grid, draw_piece_preview, draw_enemies, draw_towers, draw_dashed_path, draw_zoomed_map, draw_info_bars
 from run_state import create_run_state
 
 class FightScene:

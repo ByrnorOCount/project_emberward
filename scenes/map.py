@@ -1,5 +1,5 @@
 import sys, pygame
-from renderer import draw_map_screen
+from render.map import draw_map_screen
 from .fight import FightScene
 
 class MapScene:
