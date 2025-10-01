@@ -1,0 +1,31 @@
+{
+  "towers": [
+    {
+      "id": "bolt",
+      "name": "Bolt",
+      "damage": 12,
+      "range": 3.0,
+      "fire_rate": 1.0,
+      "cost": 20,
+      "color": [220, 40, 40]
+    },
+    {
+      "id": "swift",
+      "name": "Swift",
+      "damage": 6,
+      "range": 2.6,
+      "fire_rate": 2.0,
+      "cost": 25,
+      "color": [40, 180, 40]
+    },
+    {
+      "id": "cannon",
+      "name": "Cannon",
+      "damage": 30,
+      "range": 2.8,
+      "fire_rate": 0.6,
+      "cost": 40,
+      "color": [40, 120, 220]
+    }
+  ]
+}

@@ -18,7 +18,20 @@ class MenuScene:
 # scenes/map.py
     # Same deal
 # scenes/fight.py
-    # Same deal
+    def select_new_piece(self):
+        pass
+    def screen_to_grid(self, sx, sy):
+        """Map screen pixel to grid coordinate, taking camera into account.
+           returns (gx, gy) or (None, None) if outside grid area.
+        """
+    def grid_to_screen(self, gx, gy):
+        pass
+    def handle_input(self, events):
+        """Handles input events from user."""
+    def update(self, dt):
+        """Updates game state."""
+    def render(self, screen):
+        """Renders the game scene."""
 
 # grid.py
 def create_grid(w, h):
@@ -66,14 +79,12 @@ class Enemy:
         pass
 def recompute_enemy_paths(enemies, grid, goal):
     """Recompute paths for all enemies."""
-def spawn_wave(spawn_points, goal, wave_config):
-    """
-    Create a wave of enemies.
-    wave_config: list of dicts, e.g.
-    [{"hp": 50, "speed": 4, "gold": 5, "etype": "fast"}, {"hp": 200, "speed": 2, "gold": 20, "etype": "tank"}]
-    """
+def spawn_wave(spawn_points, goal, wave_seq):
+    """Spawn enemies following ordered sequence from waves.json"""
 def update_enemies(enemies, dt, goal):
     """Update all enemies; return list of enemies that reached the goal."""
+def enemy_data():
+    pass
 
 # tower.py
 class Tower:
@@ -95,6 +106,8 @@ def place_tower(grid, x, y, towers):
     pass
 def update_towers(towers, enemies, dt):
     """Update towers; append spawned projectiles into projectiles list."""
+def tower_data():
+    """Expose tower data externally."""
 
 # render/fight.py
 def cell_rect(x, y, cell_size):
@@ -141,3 +154,7 @@ class Projectile:
     to a target enemy object. Coordinates are in grid-space (cells),
     not pixels. FightScene will use camera.cell_size to turn into pixels.
     """
+
+# data/towers.json
+# data/enemies.json
+# data/waves.json

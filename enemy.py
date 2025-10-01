@@ -1,15 +1,22 @@
+import json, os
 from astar import astar
 
+# Load enemy archetypes
+with open(os.path.join("data", "enemies.json")) as f:
+    _ENEMY_DATA = {e["id"]: e for e in json.load(f)["enemies"]}
+
 class Enemy:
-    def __init__(self, start, goal, hp=100, speed=3, gold=10, etype="basic"):
+    def __init__(self, start, goal, etype="basic"):
+        data = _ENEMY_DATA[etype]
         self.pos = start       # current grid cell (x, y)
         self.goal = goal
         self.path = []         # list of cells from start → goal
         self.t = 0.0           # interpolation between path[0] and path[1]
-        self.hp = hp
-        self.speed = speed
-        self.gold = gold
+        self.hp = data["hp"]
+        self.speed = data["speed"]
+        self.gold = data["gold"]
         self.etype = etype     # e.g. "fast", "tank", "basic"
+        self.color = tuple(data["color"])
 
     def set_path(self, path):
         """Assign a new path and reset progress."""
@@ -41,22 +48,14 @@ def recompute_enemy_paths(enemies, grid, goal):
     for e in enemies:
         e.set_path(astar(grid, e.pos, goal))
 
-def spawn_wave(spawn_points, goal, wave_config):
-    """
-    Create a wave of enemies.
-    wave_config: list of dicts, e.g.
-    [{"hp": 50, "speed": 4, "gold": 5, "etype": "fast"}, {"hp": 200, "speed": 2, "gold": 20, "etype": "tank"}]
-    """
+def spawn_wave(spawn_points, goal, wave_seq):
+    """Spawn enemies following ordered sequence from waves.json"""
     enemies = []
-    for sp in spawn_points:
-        for cfg in wave_config:
-            # Pull known kwargs, allow etype
-            hp = cfg.get("hp", 100)
-            speed = cfg.get("speed", 3)
-            gold = cfg.get("gold", 10)
-            etype = cfg.get("etype", "basic")
-            e = Enemy(sp, goal, hp=hp, speed=speed, gold=gold, etype=etype)
-            enemies.append(e)
+    for step in wave_seq:  # [{type, count}, ...]
+        for _ in range(step["count"]):
+            for sp in spawn_points:
+                e = Enemy(sp, goal, etype=step["type"])
+                enemies.append(e)
     return enemies
 
 def update_enemies(enemies, dt, goal):
@@ -67,3 +66,6 @@ def update_enemies(enemies, dt, goal):
         if e.reached_goal():
             reached.append(e)
     return reached
+
+def enemy_data():
+    return _ENEMY_DATA

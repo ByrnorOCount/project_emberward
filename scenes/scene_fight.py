@@ -1,10 +1,13 @@
-import sys, pygame, random
+import sys, pygame, random, json, os
 from grid import cell_center, create_grid, set_cells, OBSTACLE, TOWER
 from piece import get_piece_shapes, rotate_piece, can_place_piece, get_absolute_cells
 from astar import astar
 from enemy import update_enemies, spawn_wave, recompute_enemy_paths
 from tower import Tower, can_place_tower, place_tower, update_towers
 from render.render_fight import draw_zoomed_map, draw_tower_preview, draw_piece_preview, tower_list_click_test, sidebar_click_test, draw_projectiles, draw_sidebar, draw_tower_range
+
+with open(os.path.join("data", "waves.json")) as f:
+    _WAVES = json.load(f)["waves"]
 
 class FightScene:
     def __init__(self, game, run_state):
@@ -37,26 +40,15 @@ class FightScene:
         self.deck = [random.choice(self.piece_keys) for _ in range(20)]
         self.current_piece_key = None
         self._select_new_piece()
-        self.rotation = 0
-        self.placing_tower = False
+        self.rotation = 0        
+        self.placement_mode = "neutral" # "neutral", "piece", "tower"
 
         # tower selection: 0,1,2
         self.selected_tower_type = 0  # 0/1/2 for 3 towers
         self.clicked_tower = None     # tower object clicked for stats panel
         self.hover_tower = None       # tower object currently hovered (for range display)
         
-        # waves: 3 waves, with at least two enemy types
-        self.waves = [
-            # wave 1: light fast enemies
-            [{"hp": 50, "speed": 5, "gold": 3, "etype": "fast"} for _ in range(8)],
-            # wave 2: basic + 1 tank
-            [{"hp": 100, "speed": 3, "gold": 6, "etype": "basic"} for _ in range(6)] + 
-            [{"hp": 250, "speed": 1, "gold": 20, "etype": "tank"} for _ in range(2)],
-            # wave 3: mixed heavier set
-            [{"hp": 80, "speed": 5, "gold": 4, "etype": "fast"} for _ in range(6)] + 
-            [{"hp": 200, "speed": 2, "gold": 12, "etype": "tank"} for _ in range(4)] +
-            [{"hp": 400, "speed": 2, "gold": 12, "etype": "tank"} for _ in range(4)]
-        ]
+        self.waves = _WAVES
         self.current_wave_index = 0
         self.wave_spawned = False
 
@@ -100,14 +92,23 @@ class FightScene:
         for e in events:
             if e.type == pygame.QUIT:
                 pygame.quit(); sys.exit()
+
             elif e.type == pygame.KEYDOWN:
-                if e.key == pygame.K_q:
+                if e.key == pygame.K_q:   # counterclockwise rotation
                     self.rotation = (self.rotation - 1) % 4
-                elif e.key == pygame.K_e:
+                elif e.key == pygame.K_e: # clockwise rotation
                     self.rotation = (self.rotation + 1) % 4
-                elif e.key == pygame.K_t:
-                    self.placing_tower = not self.placing_tower
-                elif e.key == pygame.K_1:
+                elif e.key == pygame.K_p: # piece placement
+                    if self.placement_mode == "piece":
+                        self.placement_mode = "neutral"
+                    else:
+                        self.placement_mode = "piece"
+                elif e.key == pygame.K_t: # tower placement
+                    if self.placement_mode == "tower":
+                        self.placement_mode = "neutral"
+                    else:
+                        self.placement_mode = "tower"
+                elif e.key == pygame.K_1: # tower hotkeys
                     self.selected_tower_type = 0
                 elif e.key == pygame.K_2:
                     self.selected_tower_type = 1
@@ -129,6 +130,11 @@ class FightScene:
 
             elif e.type == pygame.MOUSEBUTTONDOWN:
                 mx,my = pygame.mouse.get_pos()
+
+                # Ignore wheel as button 4/5 (bugfix attempt)
+                if e.button in (4, 5):
+                    continue
+
                 # right click start panning
                 if e.button == 3:
                     self._panning = True
@@ -137,10 +143,10 @@ class FightScene:
                     continue
 
                 # left click: check sidebar Start Wave button
-                sw_clicked = sidebar_click_test(self.game.screen, mx, my)  # helper in renderer
+                sw_clicked = sidebar_click_test(self.game.screen, mx, my)
                 if sw_clicked == "start_wave":
                     if not self.wave_spawned and self.current_wave_index < len(self.waves):
-                        cfg = self.waves[self.current_wave_index]
+                        cfg = self.waves[self.current_wave_index]["sequence"]
                         new_en = spawn_wave([self.start], self.goal, cfg)
                         for en in new_en:
                             en.set_path(astar(self.grid, en.pos, self.goal))
@@ -149,14 +155,26 @@ class FightScene:
                         self.phase = "running"
                         self.run_state["phase"] = "running"
                     continue
+
                 elif sw_clicked == "tower_list":
                     # renderer can return which tower type region was clicked; we ask for a type id
                     clicked_type = tower_list_click_test(self.game.screen, mx, my)
                     if clicked_type is not None:
                         self.selected_tower_type = clicked_type
                     continue
+
                 elif sw_clicked == "sidebar_tower_panel":
                     # clicking the tower-stats section will deselect the tower
+                    self.clicked_tower = None
+                    continue
+
+                elif sw_clicked == "sell_button" and self.clicked_tower:
+                    # sell tower
+                    refund = int(self.clicked_tower.cost * 0.5)
+                    self.run_state["gold"] += refund
+                    self.grid[self.clicked_tower.y][self.clicked_tower.x] = OBSTACLE
+                    if self.clicked_tower in self.towers:
+                        self.towers.remove(self.clicked_tower)
                     self.clicked_tower = None
                     continue
 
@@ -166,8 +184,8 @@ class FightScene:
                     # click outside grid area (maybe in sidebar) — test for clicking tower list etc done above
                     continue
 
-                # if not placing tower and there's a current piece -> try place piece
-                if not self.placing_tower and self.current_piece_key is not None:
+                # Place piece if in piece mode
+                if self.placement_mode == "piece" and self.current_piece_key is not None:
                     shape = self.pieces[self.current_piece_key]
                     rotated = rotate_piece(shape, self.rotation)
                     if can_place_piece(self.grid, gx, gy, rotated, self.start, self.goal):
@@ -180,11 +198,15 @@ class FightScene:
                         recompute_enemy_paths(self.enemies, self.grid, self.goal)
                     continue
 
-                # if placing_tower, attempt to place tower on that cell
-                if self.placing_tower:
-                    if can_place_tower(self.grid, gx, gy):
-                        place_tower(self.grid, gx, gy, self.towers, tower_type=self.selected_tower_type)
-                        recompute_enemy_paths(self.enemies, self.grid, self.goal)
+                # Place tower if in tower mode
+                if self.placement_mode == "tower":
+                    tid = ["bolt", "swift", "cannon"][self.selected_tower_type]
+                    from tower import tower_data
+                    if self.run_state["gold"] >= tower_data()[tid]["cost"]:
+                        if can_place_tower(self.grid, gx, gy):
+                            t = place_tower(self.grid, gx, gy, self.towers, tower_id=tid)
+                            self.run_state["gold"] -= t.cost
+                            recompute_enemy_paths(self.enemies, self.grid, self.goal)
                     continue
 
                 # otherwise, click selects an existing tower if present; find tower at clicked cell
@@ -220,6 +242,11 @@ class FightScene:
                             break
 
     def update(self, dt):
+        if self.run_state["core_hp"] <= 0:
+            from scenes.scene_menu import MenuScene
+            self.game.change_scene(MenuScene(self.game))
+            return
+        
         # update enemies movement
         reached = update_enemies(self.enemies, dt, self.goal)
         for e in reached:
@@ -269,7 +296,7 @@ class FightScene:
 
         mx, my = pygame.mouse.get_pos()
         mouse_gx, mouse_gy = self.screen_to_grid(mx, my)
-        if mouse_gx is not None and not self.placing_tower and self.current_piece_key is not None:
+        if mouse_gx is not None and self.placement_mode == "piece" and self.current_piece_key is not None:
             shape = self.pieces[self.current_piece_key]
             rotated = rotate_piece(shape, self.rotation)
             valid = can_place_piece(self.grid, mouse_gx, mouse_gy, rotated, self.start, self.goal)
@@ -307,14 +334,15 @@ class FightScene:
 
         # Step 4: draw preview overlays
         if mouse_gx is not None:
-            if self.placing_tower:
+            if self.placement_mode == "tower":
                 valid = can_place_tower(self.grid, mouse_gx, mouse_gy)
                 draw_tower_preview(screen, mouse_gx, mouse_gy, self.selected_tower_type,
                                    cell_size=self.camera["cell_size"], valid=valid, camera=self.camera)
                 if valid:
-                    tmp_t = Tower(mouse_gx, mouse_gy, tower_type=self.selected_tower_type)
+                    tid = ["bolt", "swift", "cannon"][self.selected_tower_type]
+                    tmp_t = Tower(mouse_gx, mouse_gy, tower_id=tid)
                     draw_tower_range(screen, tmp_t, cell_size=self.camera["cell_size"],
-                                     camera=self.camera, color=(255,255,255,80))
+                                     camera=self.camera, color=(255, 255, 255, 80))
             elif self.current_piece_key is not None:
                 shape = self.pieces[self.current_piece_key]
                 rotated = rotate_piece(shape, self.rotation)

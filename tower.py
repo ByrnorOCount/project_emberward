@@ -1,38 +1,25 @@
+import json, os, math
 from grid import OBSTACLE, TOWER
-import math
 
-# We'll import Projectile lazily in the update to avoid circular imports.
-# Tower.update will return a Projectile instance (or None) which the fight scene
-# will append into its projectile list.
+# Load tower data from JSON
+with open(os.path.join("data", "towers.json")) as f:
+    _TOWER_DATA = {t["id"]: t for t in json.load(f)["towers"]}
 
 class Tower:
-    def __init__(self, x, y, damage=10, range_=3.0, fire_rate=1.0, tower_type=0):
+    def __init__(self, x, y, tower_id="bolt"):
         self.x = x
         self.y = y
-        self.damage = damage
-        self.range = float(range_)
-        self.fire_rate = float(fire_rate)
+        self.id = tower_id
+        data = _TOWER_DATA[tower_id]
+
+        self.name = data["name"]
+        self.damage = data["damage"]
+        self.range = float(data["range"])
+        self.fire_rate = float(data["fire_rate"])
+        self.cost = data["cost"]
+        self.color = tuple(data["color"])
         self.cooldown = 0.0
-        self.tower_type = tower_type
         self.kills = 0
-        self.name = self._name_for_type(tower_type)
-
-        # quick stat presets by type (you can tune)
-        if tower_type == 0:  # Basic
-            self.damage = 12
-            self.range = 3.0
-            self.fire_rate = 1.0
-        elif tower_type == 1:  # Fast
-            self.damage = 6
-            self.range = 2.6
-            self.fire_rate = 2.0
-        elif tower_type == 2:  # Heavy
-            self.damage = 30
-            self.range = 2.8
-            self.fire_rate = 0.6
-
-    def _name_for_type(self, t):
-        return ["Bolt", "Swift", "Cannon"][t] if 0 <= t <= 2 else "Tower"
 
     def in_range(self, enemy):
         """Distance uses grid units (cells). Enemy.pos is (x,y) in grid coords."""
@@ -44,11 +31,11 @@ class Tower:
     def get_stats(self):
         return {
             "Name": self.name,
-            "Type": self.tower_type,
             "Damage": self.damage,
             "Range": round(self.range, 2),
             "Fire Rate": round(self.fire_rate, 2),
-            "Kills": getattr(self, "kills", 0)
+            "Kills": self.kills,
+            "Cost": self.cost
         }
 
     def update(self, enemies, dt):
@@ -80,14 +67,12 @@ class Tower:
 
 # Placement helpers
 def can_place_tower(grid, x, y):
-    if not (0 <= y < len(grid) and 0 <= x < len(grid[0])):
-        return False
-    return grid[y][x] == OBSTACLE
+    return 0 <= y < len(grid) and 0 <= x < len(grid[0]) and grid[y][x] == OBSTACLE
 
-def place_tower(grid, x, y, towers, tower_type=0):
+def place_tower(grid, x, y, towers, tower_id="bolt"):
     # Do not overwrite OBSTACLE -> TOWER so that grid knows a tower occupies a cell
     grid[y][x] = TOWER
-    tower = Tower(x, y, tower_type=tower_type)
+    tower = Tower(x, y, tower_id=tower_id)
     towers.append(tower)
     return tower
 
@@ -97,3 +82,7 @@ def update_towers(towers, enemies, dt, projectiles):
         p = t.update(enemies, dt)
         if p:
             projectiles.append(p)
+
+def tower_data():
+    """Expose tower data externally."""
+    return _TOWER_DATA

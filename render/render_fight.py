@@ -74,13 +74,7 @@ def draw_zoomed_map(surf, grid, camera, enemies=None, towers=None, projectiles=N
             cy = ry + rh // 2
             rect = pygame.Rect(cx - size // 2, cy - size // 2, size, size)
 
-            if t.tower_type == 0:
-                pygame.draw.rect(temp, (220, 40, 40), rect)
-            elif t.tower_type == 1:
-                pygame.draw.rect(temp, (40, 180, 40), rect)
-            elif t.tower_type == 2:
-                pygame.draw.rect(temp, (40, 120, 220), rect)
-
+            pygame.draw.rect(temp, t.color, rect)
             # tower name
             font = pygame.font.SysFont("arial", 12, bold=True)
             txt = font.render(t.name, True, (255, 255, 255))
@@ -150,6 +144,7 @@ _sidebar_rects = {
     "start_wave": None,
     "tower_list": [],
     "tower_panel": None,
+    "sell_button": None,
 }
 
 def draw_sidebar(surf, run_state, selected_tower=None):
@@ -189,7 +184,7 @@ def draw_sidebar(surf, run_state, selected_tower=None):
         y += 50
 
     # Tower stats panel
-    panel_h = 120
+    panel_h = 160
     panel_rect = pygame.Rect(x, y, sidebar_w - 2*padding, panel_h)
     pygame.draw.rect(surf, (40,40,40), panel_rect)
     _sidebar_rects["tower_panel"] = panel_rect.copy()
@@ -199,7 +194,12 @@ def draw_sidebar(surf, run_state, selected_tower=None):
         for k,v in stats.items():
             surf.blit(pygame.font.SysFont("arial", 16).render(f"{k}: {v}", True, (255,255,255)), (x+6, fy))
             fy += 20
-    y += panel_h + 20
+        # Sell button
+        sell_rect = pygame.Rect(panel_rect.right-100, panel_rect.bottom-36, 80, 28)
+        pygame.draw.rect(surf, (200,80,80), sell_rect, border_radius=6)
+        txt = pygame.font.SysFont("arial", 16, bold=True).render("Sell", True, (0,0,0))
+        surf.blit(txt, (sell_rect.centerx - txt.get_width()//2, sell_rect.centery - txt.get_height()//2))
+        _sidebar_rects["sell_button"] = sell_rect.copy()
 
     # Start wave button
     btn_rect = pygame.Rect(x, h - 80, sidebar_w - 2*padding, 48)
@@ -217,6 +217,8 @@ def sidebar_click_test(surf, mx, my):
         return "start_wave"
     if _sidebar_rects["tower_panel"] and _sidebar_rects["tower_panel"].collidepoint(mx, my):
         return "sidebar_tower_panel"
+    if _sidebar_rects["sell_button"] and _sidebar_rects["sell_button"].collidepoint(mx, my):
+        return "sell_button"
     for idx, rect in _sidebar_rects["tower_list"]:
         if rect.collidepoint(mx, my):
             return "tower_list"
