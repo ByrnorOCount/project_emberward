@@ -23,7 +23,7 @@ def draw_grid(surf, grid, cell_size):
 
 def draw_zoomed_map(surf, grid, camera, enemies=None, towers=None, projectiles=None, path=None, is_path_valid=True):
     """Draw the fight grid, enemies, towers, projectiles at zoomed scale with camera offset."""
-    cs = int(camera["cell_size"] * camera["zoom"])
+    cs = int(camera.cell_size * camera.zoom)
     gw, gh = len(grid[0]), len(grid)
     temp = pygame.Surface((gw * cs, gh * cs))
     draw_grid(temp, grid, cs)
@@ -61,7 +61,7 @@ def draw_zoomed_map(surf, grid, camera, enemies=None, towers=None, projectiles=N
             pygame.draw.circle(temp, (255, 255, 255), (int(px), int(py)), max(2, cs // 8))
 
     # blit with camera offset
-    surf.blit(temp, (camera["offset_x"], camera["offset_y"]))
+    surf.blit(temp, (camera.offset_x, camera.offset_y))
 
 def draw_path(temp, cs, path, is_path_valid):
     # path (TODO: change to dashed, keep it constant during fight including prep and fight phases)
@@ -94,9 +94,9 @@ def draw_path(temp, cs, path, is_path_valid):
 # -----------------------------
 def draw_tower_preview(surf, gx, gy, tower, cell_size, valid, camera):
     """Draws a ghost/preview version of a tower at mouse position with color based on validity."""
-    cs = int(cell_size * camera["zoom"])
-    cx = gx * cs + cs // 2 + camera["offset_x"]
-    cy = gy * cs + cs // 2 + camera["offset_y"]
+    cs = int(cell_size * camera.zoom)
+    cx = gx * cs + cs // 2 + camera.offset_x
+    cy = gy * cs + cs // 2 + camera.offset_y
     size = int(cs * 0.7)
     rect = pygame.Rect(cx - size // 2, cy - size // 2, size, size)
     color = (0, 200, 0, 100) if valid else (200, 0, 0, 100)
@@ -111,27 +111,27 @@ def draw_tower_preview(surf, gx, gy, tower, cell_size, valid, camera):
 
 def draw_piece_preview(surf, gx, gy, rotated_cells, cell_size, valid, camera):
     """Draws a ghost/preview version of a piece at mouse position with color based on validity."""
-    cs = int(cell_size * camera["zoom"])
+    cs = int(cell_size * camera.zoom)
     color = (0, 255, 0) if valid else (255, 0, 0)
     for x, y in rotated_cells:
-        rx = (gx + x) * cs + camera["offset_x"]
-        ry = (gy + y) * cs + camera["offset_y"]
+        rx = (gx + x) * cs + camera.offset_x
+        ry = (gy + y) * cs + camera.offset_y
         pygame.draw.rect(surf, color, (rx, ry, cs, cs), 2)
 
 def draw_tower_range(surf, tower, cell_size, camera, color=(255,255,255,80)):
-    cs = int(cell_size * camera["zoom"])
+    cs = int(cell_size * camera.zoom)
     radius = int(tower.range * cs)
-    cx = tower.x * cs + cs // 2 + camera["offset_x"]
-    cy = tower.y * cs + cs // 2 + camera["offset_y"]
+    cx = tower.x * cs + cs // 2 + camera.offset_x
+    cy = tower.y * cs + cs // 2 + camera.offset_y
     overlay = pygame.Surface((radius * 2, radius * 2), pygame.SRCALPHA)
     pygame.draw.circle(overlay, color, (radius, radius), radius)
     surf.blit(overlay, (cx - radius, cy - radius))
 
 def draw_projectiles(surf, projectiles, cell_size, camera):
-    cs = int(cell_size * camera["zoom"])
+    cs = int(cell_size * camera.zoom)
     for p in projectiles:
-        px = p.x * cs + cs // 2 + camera["offset_x"]
-        py = p.y * cs + cs // 2 + camera["offset_y"]
+        px = p.x * cs + cs // 2 + camera.offset_x
+        py = p.y * cs + cs // 2 + camera.offset_y
         pygame.draw.circle(surf, (255, 255, 255), (int(px), int(py)), max(2, cs // 8))
 
 # -----------------------------
@@ -143,7 +143,7 @@ _sidebar_rects = {
     "tower_panel": None,
 }
 
-def draw_sidebar(surf, run_state, is_placing_tower, selected_tower=None):
+def draw_sidebar(surf, level, player, is_placing_tower, selected_tower=None):
     w, h = surf.get_size()
     sidebar_w = 260
     rect = pygame.Rect(w - sidebar_w, 0, sidebar_w, h)
@@ -155,16 +155,16 @@ def draw_sidebar(surf, run_state, is_placing_tower, selected_tower=None):
     f = pygame.font.SysFont(DEFAULT_FONT_NAME, 20, bold=True)
 
     # Core / Gold / Wave
-    core_hp = run_state.get("core_hp", 0)
-    gold = run_state.get("gold", 0)
-    wave_i = run_state.get("wave_index", 0)
-    wave_t = run_state.get("wave_total", 0)
+    core_hp = player.hp
+    gold = player.gold
+    wave_i = player.wave_index
+    wave_t = len(level.waves)
     surf.blit(f.render(f"Core HP: {core_hp}", True, (255,255,255)), (x, y)); y += 30
     surf.blit(f.render(f"Gold: {gold}", True, (255,255,255)), (x, y)); y += 30
     surf.blit(f.render(f"Wave: {wave_i}/{wave_t}", True, (255,255,255)), (x, y)); y += 40
 
     # Deck
-    deck = run_state.get("deck_count", 0)
+    deck = player.deck_count
     surf.blit(f.render(f"Deck: {deck} pieces", True, (255,255,255)), (x, y)); y += 40
 
     # Towers list

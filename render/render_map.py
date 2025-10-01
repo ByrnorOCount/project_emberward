@@ -2,7 +2,7 @@ import pygame
 from constants import *
 from .render_menu import draw_grid_background
 
-def draw_map(surf, run_state):
+def draw_map(surf, level):
     """Draws roguelite map nodes, connections, and player progress (simple single-node)."""
     surf.fill((30, 30, 30))
     w, h = surf.get_size()
@@ -13,7 +13,7 @@ def draw_map(surf, run_state):
     pygame.draw.circle(surf, (100, 160, 240), (cx, cy), node_r)
     pygame.draw.circle(surf, (220, 220, 220), (cx, cy), node_r, 4)
     font = pygame.font.SysFont(DEFAULT_FONT_NAME, 22, bold=True)
-    name = run_state.get("nodes", [{}])[0].get("name", "Node")
+    name = level.name
     txt = font.render(name, True, (255,255,255))
     txt_r = txt.get_rect(center=(cx, cy))
     surf.blit(txt, txt_r)

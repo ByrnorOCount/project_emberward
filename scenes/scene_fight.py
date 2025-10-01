@@ -1,5 +1,6 @@
 import pygame, random
 from enum import Enum
+from level import Level, Player, level1
 from constants import *
 from grid import cell_center, create_grid, set_cells, OBSTACLE, TOWER
 from piece import get_piece_shapes, rotate_piece, can_place_piece, get_absolute_cells
@@ -10,9 +11,8 @@ from tower import BoltTower, SwiftTower, CannonTower, can_place_tower, update_to
 from render.render_fight import draw_zoomed_map, draw_tower_preview, draw_piece_preview, tower_list_click_test, sidebar_click_test, draw_projectiles, draw_sidebar, draw_tower_range
 
 class FightScene:
-    def __init__(self, game, run_state):
+    def __init__(self, game, level):
         self.game = game
-        self.run_state = run_state
 
         self.grid = create_grid(30, 20)
         self.gw = len(self.grid[0])
@@ -25,13 +25,7 @@ class FightScene:
         self.towers = []
         self.projectiles = []
 
-        # camera
-        self.camera = {
-            "offset_x": 0,
-            "offset_y": 0,
-            "zoom": 1.0,
-            "cell_size": 36
-        }
+        self.camera = Camera(0, 0, 1.0, 36)
 
         # pieces / deck: 20 pieces randomly selected from available shapes
         self.pieces = get_piece_shapes()
@@ -48,26 +42,11 @@ class FightScene:
         self.clicked_tower = None     # tower object clicked for stats panel
         self.hover_tower = None       # tower object currently hovered (for range display)
         
-        # waves: 3 waves, with at least two enemy types
-        self.waves = [
-            # wave 1: light fast enemies
-            [FastEnemy for _ in range(8)],
-            # wave 2: basic + 1 tank
-            [BasicEnemy for _ in range(6)] + 
-            [TankEnemy for _ in range(2)],
-            # wave 3: mixed heavier set
-            [FastEnemy for _ in range(6)] + 
-            [TankEnemy for _ in range(4)] +
-            [TankEnemy for _ in range(4)]
-        ]
         self.current_wave_index = 0
         self.wave_spawned = False
 
-        # put wave info into run_state so HUD can read it
-        self.run_state["wave_total"] = len(self.waves)
-        self.run_state["wave_index"] = self.current_wave_index
-        # self.run_state["phase"] = Phase.Prepare
-        self.run_state["deck_count"] = len(self.deck)
+        self.level = level
+        self.player = Player(self.level.core_hp, self.level.gold, self.current_wave_index, len(self.deck))
         self.phase = Phase.Prepare
 
         # input helpers
@@ -82,9 +61,9 @@ class FightScene:
         """Map screen pixel to grid coordinate, taking camera into account.
            returns (gx, gy) or (None, None) if outside grid area.
         """
-        cs = int(self.camera["cell_size"] * self.camera["zoom"])
-        wx = sx - self.camera["offset_x"]
-        wy = sy - self.camera["offset_y"]
+        cs = int(self.camera.cell_size * self.camera.zoom)
+        wx = sx - self.camera.offset_x
+        wy = sy - self.camera.offset_y
         if wx < 0 or wy < 0:
             return (None, None)
         gx = int(wx // cs)
@@ -94,9 +73,9 @@ class FightScene:
         return (None, None)
 
     def grid_to_screen(self, gx, gy):
-        cs = int(self.camera["cell_size"] * self.camera["zoom"])
-        sx = gx * cs + cs//2 + self.camera["offset_x"]
-        sy = gy * cs + cs//2 + self.camera["offset_y"]
+        cs = int(self.camera.cell_size * self.camera.zoom)
+        sx = gx * cs + cs//2 + self.camera.offset_x
+        sy = gy * cs + cs//2 + self.camera.offset_y
         return sx, sy
     
     def handle_input(self, e):
@@ -114,12 +93,12 @@ class FightScene:
             elif e.key == pygame.K_3:
                 self.selected_tower = CannonTower
             elif e.key == pygame.K_EQUALS or e.key == pygame.K_PLUS:
-                self.camera["zoom"] = min(2.5, self.camera["zoom"] + 0.1)
+                self.camera.zoom = min(2.5, self.camera.zoom + 0.1)
             elif e.key == pygame.K_MINUS:
-                self.camera["zoom"] = max(0.6, self.camera["zoom"] - 0.1)
+                self.camera.zoom = max(0.6, self.camera.zoom - 0.1)
             elif e.key == pygame.K_ESCAPE:
                 from scenes.scene_map import MapScene
-                self.game.change_scene(MapScene(self.game, self.run_state))
+                self.game.change_scene(MapScene(self.game, self.level))
 
         elif e.type == pygame.MOUSEWHEEL:
             self.zoomimg(e)
@@ -144,7 +123,7 @@ class FightScene:
         # update enemies movement
         reached = update_enemies(self.enemies, dt, self.goal)
         for e in reached:
-            self.run_state["core_hp"] -= 1
+            self.player.hp -= 1
             if e in self.enemies:
                 self.enemies.remove(e)
 
@@ -164,7 +143,7 @@ class FightScene:
         # remove dead enemies and award gold
         for e in list(self.enemies):
             if e.is_dead():
-                self.run_state["gold"] += e.gold
+                self.player.gold += e.gold
                 if e in self.enemies:
                     self.enemies.remove(e)
 
@@ -173,13 +152,11 @@ class FightScene:
             # wave was spawned and there are no enemies and no in-flight projectiles
             self.wave_spawned = False
             self.current_wave_index += 1
-            self.run_state["wave_index"] = self.current_wave_index
-            if self.current_wave_index >= len(self.waves):
+            self.player.wave_index = self.current_wave_index
+            if self.current_wave_index >= len(self.level.waves):
                 self.phase = Phase.Victory
-                # self.run_state["phase"] = Phase.Victory
             else:
                 self.phase = Phase.Prepare
-                # self.run_state["phase"] = Phase.Prepare
 
     def render(self, screen):
         screen.fill((18, 18, 18))
@@ -214,14 +191,14 @@ class FightScene:
         )
 
         # Step 3: draw core icon
-        cs = int(self.camera["cell_size"] * self.camera["zoom"])
+        cs = int(self.camera.cell_size * self.camera.zoom)
         goal_gx, goal_gy = self.goal
         cx, cy = cell_center(goal_gx, goal_gy, cs)
-        sx = cx + self.camera["offset_x"]
-        sy = cy + self.camera["offset_y"]
+        sx = cx + self.camera.offset_x
+        sy = cy + self.camera.offset_y
         pygame.draw.circle(screen, (180, 60, 60), (int(sx), int(sy)), max(6, cs//4))
         font = pygame.font.SysFont(DEFAULT_FONT_NAME, 16, bold=True)
-        txt = font.render(str(self.run_state.get("core_hp", 0)), True, (255,255,255))
+        txt = font.render(str(self.player.hp), True, (255,255,255))
         screen.blit(txt, (int(sx - txt.get_width()//2), int(sy - txt.get_height()//2)))
 
         # Step 4: draw preview overlays
@@ -230,41 +207,38 @@ class FightScene:
                 valid = can_place_tower(self.grid, mouse_gx, mouse_gy)
                 tmp_tower = self.selected_tower(mouse_gx, mouse_gy)
                 draw_tower_preview(screen, mouse_gx, mouse_gy, tmp_tower,
-                                   cell_size=self.camera["cell_size"], valid=valid, camera=self.camera)
+                                   cell_size=self.camera.cell_size, valid=valid, camera=self.camera)
                 if valid:
                     tmp_t = self.selected_tower(mouse_gx, mouse_gy)
-                    draw_tower_range(screen, tmp_t, cell_size=self.camera["cell_size"],
+                    draw_tower_range(screen, tmp_t, cell_size=self.camera.cell_size,
                                      camera=self.camera, color=(255,255,255,80))
             elif self.current_piece_key is not None:
                 shape = self.pieces[self.current_piece_key]
                 rotated = rotate_piece(shape, self.rotation)
                 valid = can_place_piece(self.grid, mouse_gx, mouse_gy, rotated, self.start, self.goal)
                 draw_piece_preview(screen, mouse_gx, mouse_gy, rotated,
-                                   cell_size=self.camera["cell_size"],
+                                   cell_size=self.camera.cell_size,
                                    valid=valid,
                                    camera=self.camera)
 
         # Step 5: range circles
         if self.hover_tower:
             draw_tower_range(screen, self.hover_tower,
-                             cell_size=self.camera["cell_size"],
+                             cell_size=self.camera.cell_size,
                              camera=self.camera, color=(255,255,255,90))
         if self.clicked_tower and self.clicked_tower is not self.hover_tower:
             draw_tower_range(screen, self.clicked_tower,
-                             cell_size=self.camera["cell_size"],
+                             cell_size=self.camera.cell_size,
                              camera=self.camera, color=(255,220,80,110))
 
         # Step 6: projectiles
         draw_projectiles(screen, self.projectiles,
-                         cell_size=self.camera["cell_size"], camera=self.camera)
+                         cell_size=self.camera.cell_size, camera=self.camera)
 
         # Step 7: sidebar
-        self.run_state["wave_index"] = self.current_wave_index
-        self.run_state["wave_total"] = len(self.waves)
-        # self.run_state["phase"] = self.phase
-        self.run_state["deck_count"] = len(self.deck)
+        self.player.deck_count = len(self.deck)
 
-        draw_sidebar(screen, self.run_state, self.is_placing_tower, selected_tower=self.clicked_tower)
+        draw_sidebar(screen, self.level, self.player, self.is_placing_tower, selected_tower=self.clicked_tower)
 
         # Step 8: flip
         pygame.display.flip()
@@ -273,15 +247,14 @@ class FightScene:
         # left click: check sidebar Start Wave button
         sw_clicked = sidebar_click_test(self.game.screen, mx, my)  # helper in renderer
         if sw_clicked == "start_wave":
-            if not self.wave_spawned and self.current_wave_index < len(self.waves):
-                cfg = self.waves[self.current_wave_index]
+            if not self.wave_spawned and self.current_wave_index < len(self.level.waves):
+                cfg = self.level.waves[self.current_wave_index]
                 new_en = self.spawn_wave([self.start], self.goal, cfg)
                 for en in new_en:
                     en.set_path(astar(self.grid, en.pos, self.goal))
                     self.enemies.append(en)
                 self.wave_spawned = True
                 self.phase = Phase.Running
-                # self.run_state["phase"] = Phase.Running
         elif sw_clicked == "tower_list":
             # renderer can return which tower type region was clicked; we ask for a type id
             clicked_type = tower_list_click_test(self.game.screen, mx, my)
@@ -324,7 +297,7 @@ class FightScene:
             if self.deck:
                 self.deck.pop(0)
             self.select_new_piece()
-            self.run_state["deck_count"] = len(self.deck)
+            self.player.deck_count = len(self.deck)
             recompute_enemy_paths(self.enemies, self.grid, self.goal)
 
     def select_existing_tower(self, gx, gy):
@@ -337,14 +310,14 @@ class FightScene:
 
     def zoomimg(self, e):
         if e.y > 0:
-            self.camera["zoom"] = min(2.5, self.camera["zoom"] + 0.1)
+            self.camera.zoom = min(2.5, self.camera.zoom + 0.1)
         else:
-            self.camera["zoom"] = max(0.6, self.camera["zoom"] - 0.1)
+            self.camera.zoom = max(0.6, self.camera.zoom - 0.1)
 
     def start_panning(self, mx, my):
         self.is_panning = True
         self._pan_start = (mx, my)
-        self._cam_start = (self.camera["offset_x"], self.camera["offset_y"])
+        self._cam_start = (self.camera.offset_x, self.camera.offset_y)
 
     def stop_panning(self):
         self.is_panning = False
@@ -355,8 +328,8 @@ class FightScene:
         mx, my = e.pos
         dx = mx - self._pan_start[0]
         dy = my - self._pan_start[1]
-        self.camera["offset_x"] = self._cam_start[0] + dx
-        self.camera["offset_y"] = self._cam_start[1] + dy
+        self.camera.offset_x = self._cam_start[0] + dx
+        self.camera.offset_y = self._cam_start[1] + dy
 
     def show_tower_range(self, e):
         mx, my = e.pos
@@ -378,6 +351,13 @@ class FightScene:
                 e = EnemyClass(sp, goal)
                 enemies.append(e)
         return enemies
+    
+class Camera:
+    def __init__(self, offset_x, offset_y, zoom, cell_size):
+        self.offset_x = offset_x
+        self.offset_y = offset_y
+        self.zoom = zoom
+        self.cell_size = cell_size
     
 class Phase(Enum):
     Prepare = 1
