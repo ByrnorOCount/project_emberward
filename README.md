@@ -1,96 +1,64 @@
-# Emberward clone that highlights A* search
+# Emberward Clone (that highlights A* search)
 
-Move mouse over map and press the piece placement key (default is: no toggle, just left-click to place pieces).
+A tower defense game with a twist, inspired by Emberward. This project emphasizes dynamic pathfinding by challenging the player to build a maze for enemies using Tetris-like pieces. Enemies use the A* search algorithm to navigate the maze in real-time, forcing you to think strategically about your defenses.
 
-Press T to toggle tower placement and use 1/2/3 to pick tower type and place towers on player-placed tiles.
+## Gameplay
 
-Click "Start Wave" in the right sidebar to spawn the next wave.
+The core gameplay loop combines maze-building and tower defense with roguelite progression.
 
-Pan/zoom with right mouse drag + mousewheel (or +/- keys).
+1. **Build Your Maze**: Before and during waves, place Tetris-shaped pieces on the grid to create a long, winding path for enemies. The path from the enemy spawn to your core is always visible.
+2. **Place Towers**: Build towers on the pieces you've placed. Each tower has unique stats for damage, range, and fire rate.
+3. **Defend the Core**: Click "Start Wave" and watch your defenses hold off incoming enemies. Earn gold for each enemy defeated.
+4. **Progress**: Survive all waves to win the level. You'll return to a map screen where you can choose your next battle, carrying over your core HP and gold. If your core's HP drops to zero, the run ends.
 
-## Flow recap
+## Controls
 
-Start Menu → click Play → calls start_new_run() → goes to Map Screen
+### General
 
-Map Screen → player chooses next node → loads fight map via load_map_layout()
+- **Pan Camera**: Hold `Right Mouse Button` and drag.
+- **Zoom Camera**: Use the `Mouse Wheel` or `+` / `-` keys.
+- **Return to Map**: Press `Escape` during a fight.
 
-Fight Map → spawn waves → player places pieces/towers, defends core → on victory → return to Map Screen
+### Placement
 
-Core HP persists → losing all HP ends run → back to Start Menu
+- **Toggle Piece Placement**: Press `P`.
+- **Toggle Tower Placement**: Press `T`.
+- **Rotate Piece**: Press `Q` (counter-clockwise) or `E` (clockwise).
+- **Select Tower Type**: Press `1`, `2`, or `3`.
+- **Place / Select**: `Left-click` to place a piece/tower or to select an existing tower to view its stats and sell it.
 
-## Flow pt 2
+## Features
 
-### Core Game Flow
+- **Dynamic A* Pathfinding**: Enemies constantly recalculate their path to your core as you place and remove obstacles.
+- **Tetris-like Maze Building**: Use a deck of familiar puzzle pieces to construct your defenses. You can't block the path completely!
+- **Multiple Tower Types**: Deploy different towers, each with its own cost, damage, range, and fire rate.
+- **Wave-Based Survival**: Face increasingly challenging waves of enemies with varying stats.
+- **Roguelite Progression**: Move between nodes on a map, with your core HP and gold persisting between fights.
+- **Interactive UI**: A clean sidebar provides all necessary information, including gold, core HP, wave status, and tower selection.
 
-Start Menu
- Title display
- Play button → starts a new run
- Options button → placeholder menu for now
- Quit button → exits the game
+## How to Run
 
-Roguelite Map Screen
- Procedural or predefined node map with branching paths
- Node selection with different rewards (gold, upgrades, map layouts)
- Show player progress and upcoming path
+1. **Install Dependencies**: Make sure you have Python and Pygame installed.
 
-Run State Management
- Persistent core HP across fights
- Player gold carries between fights
- Track cleared nodes, current node, next node choices
+    ```sh
+    pip install pygame
+    ```
 
-### Fight / Tower Defense Phase
+2. **Run the Game**: Execute the `main.py` file.
 
-Map & Obstacles
- Load fixed obstacles layout for each map
- Distinguish unplaceable terrain vs. player-placed tetris pieces
- Core in center with HP visible
- Multiple enemy spawn points at map edges
+    ```sh
+    python main.py
+    ```
 
-Player Actions
- Place tetris pieces before/during wave to shape paths
- Place towers on top of player-placed tetris pieces
- Upgrade towers (cost scaling, stats improvement)
- Gold income from killing enemies
- Zoom/pan controls for large maps
+## Developer Notes
 
-### Enemies
+- **Performance**: Pathfinding is a critical component. A* is re-calculated for enemies only when their path is obstructed by a newly placed piece.
+- **Game Data**: Enemy waves, tower stats, and piece shapes are all defined in easy-to-edit `.json` files in the `data/` directory.
 
-Enemy attributes: HP, speed, gold reward
-Enemy pathfinding with A* that updates when player places blocks
-Waves system with scaling difficulty
-Multiple enemy types (fast, tanky, etc.)
+## Future Ideas
 
-### Towers
-
-Tower attributes: cost, damage, range, fire rate, gimmick (e.g., splash, slow)
-Targeting logic (closest, first, strongest)
-Projectile handling (optional or instant hit)
-Upgrade system for damage/range/special effects
-
-### UI & Rendering
-
-Info bars: core HP, gold, wave, upcoming enemies
-Tetris piece preview when placing
-Tower range indicator when placing
-Dashed path lines with arrowheads for enemy routes
-Sidebar for wave start, pause, etc.
-
-### Game Systems
-
-Game states: MENU → MAP → FIGHT → MAP → WIN/LOSS
-Gold economy balancing
-Difficulty scaling across nodes
-Victory/loss conditions → back to menu
-
-## Performance tips & scaling
-
-Recompute only when necessary. Cache each enemy's path and only recalc if obstructed or if placed block intersects the path.
-Spread A\* work across frames: run at most M pathfinds per frame using a queue.
-For big maps, consider hierarchical pathfinding or jump point search later.
-Use integer grid coords for A* to keep it fast.
-
-## Extras that could be added later
-
-Conveyor obstacles (special obstacle cell type that forces direction) to actively redirect enemies instead of just blocking — would require adding directional edges or movement penalty modifiers.
-Enemy formation smoothing: enemy follows path centers but avoid overlapping using simple separation steering.
-Tower upgrades, projectile visuals, damage, and range circle.
+- Tower upgrades for damage, range, and special effects.
+- More enemy types (e.g., flying, armored, fast).
+- Special map nodes with unique challenges or rewards.
+- Visual effects for projectiles, impacts, and enemy deaths.
+- Sound effects and music.
