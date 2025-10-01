@@ -6,33 +6,16 @@ import math
 # will append into its projectile list.
 
 class Tower:
-    def __init__(self, x, y, damage=10, range_=3.0, fire_rate=1.0, tower_type=0):
+    def __init__(self, x, y, damage=10, range_=3.0, fire_rate=1.0, name="Tower", color=(255, 255, 255)):
         self.x = x
         self.y = y
         self.damage = damage
         self.range = float(range_)
         self.fire_rate = float(fire_rate)
         self.cooldown = 0.0
-        self.tower_type = tower_type
         self.kills = 0
-        self.name = self._name_for_type(tower_type)
-
-        # quick stat presets by type (you can tune)
-        if tower_type == 0:  # Basic
-            self.damage = 12
-            self.range = 3.0
-            self.fire_rate = 1.0
-        elif tower_type == 1:  # Fast
-            self.damage = 6
-            self.range = 2.6
-            self.fire_rate = 2.0
-        elif tower_type == 2:  # Heavy
-            self.damage = 30
-            self.range = 2.8
-            self.fire_rate = 0.6
-
-    def _name_for_type(self, t):
-        return ["Bolt", "Swift", "Cannon"][t] if 0 <= t <= 2 else "Tower"
+        self.name = name
+        self.color = color
 
     def in_range(self, enemy):
         """Distance uses grid units (cells). Enemy.pos is (x,y) in grid coords."""
@@ -84,16 +67,30 @@ def can_place_tower(grid, x, y):
         return False
     return grid[y][x] == OBSTACLE
 
-def place_tower(grid, x, y, towers, tower_type=0):
-    # Do not overwrite OBSTACLE -> TOWER so that grid knows a tower occupies a cell
-    grid[y][x] = TOWER
-    tower = Tower(x, y, tower_type=tower_type)
-    towers.append(tower)
-    return tower
-
 def update_towers(towers, enemies, dt, projectiles):
     """Update towers; append spawned projectiles into projectiles list."""
-    for t in towers:
-        p = t.update(enemies, dt)
+    for tower in towers:
+        p = tower.update(enemies, dt)
         if p:
             projectiles.append(p)
+
+
+class BoltTower(Tower):
+    def __init__(self, x, y):
+        super().__init__(x, y, damage=12, range_=3.0, fire_rate=1.0, name="Bolt", color=(220, 40, 40))
+
+
+class SwiftTower(Tower):
+    def __init__(self, x, y):
+        super().__init__(x, y, damage=6, range_=2.6, fire_rate=2.0, name="Swift", color=(40, 180, 40))
+
+
+class CannonTower(Tower):
+    def __init__(self, x, y):
+        super().__init__(x, y, damage=30, range_=5, fire_rate=0.6, name="Cannon", color=(40, 120, 220))
+
+    def update(self, enemies, dt):
+        proj = super().update(enemies, dt)
+        if proj:
+            proj.splash_radius = 1.5
+        return proj

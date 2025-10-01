@@ -1,9 +1,12 @@
-import sys, pygame, random
+import pygame, random
+from enum import Enum
+from constants import *
 from grid import cell_center, create_grid, set_cells, OBSTACLE, TOWER
 from piece import get_piece_shapes, rotate_piece, can_place_piece, get_absolute_cells
 from astar import astar
-from enemy import update_enemies, spawn_wave, recompute_enemy_paths
-from tower import Tower, can_place_tower, place_tower, update_towers
+from enemy import update_enemies, recompute_enemy_paths
+from enemy import FastEnemy, BasicEnemy, TankEnemy
+from tower import BoltTower, SwiftTower, CannonTower, can_place_tower, update_towers
 from render.render_fight import draw_zoomed_map, draw_tower_preview, draw_piece_preview, tower_list_click_test, sidebar_click_test, draw_projectiles, draw_sidebar, draw_tower_range
 
 class FightScene:
@@ -36,26 +39,26 @@ class FightScene:
         # deck is a list of piece keys
         self.deck = [random.choice(self.piece_keys) for _ in range(20)]
         self.current_piece_key = None
-        self._select_new_piece()
+        self.select_new_piece()
         self.rotation = 0
-        self.placing_tower = False
+        self.is_placing_tower = False
 
         # tower selection: 0,1,2
-        self.selected_tower_type = 0  # 0/1/2 for 3 towers
+        self.selected_tower = BoltTower  # 0/1/2 for 3 towers
         self.clicked_tower = None     # tower object clicked for stats panel
         self.hover_tower = None       # tower object currently hovered (for range display)
         
         # waves: 3 waves, with at least two enemy types
         self.waves = [
             # wave 1: light fast enemies
-            [{"hp": 50, "speed": 5, "gold": 3, "etype": "fast"} for _ in range(8)],
+            [FastEnemy for _ in range(8)],
             # wave 2: basic + 1 tank
-            [{"hp": 100, "speed": 3, "gold": 6, "etype": "basic"} for _ in range(6)] + 
-            [{"hp": 250, "speed": 1, "gold": 20, "etype": "tank"} for _ in range(2)],
+            [BasicEnemy for _ in range(6)] + 
+            [TankEnemy for _ in range(2)],
             # wave 3: mixed heavier set
-            [{"hp": 80, "speed": 5, "gold": 4, "etype": "fast"} for _ in range(6)] + 
-            [{"hp": 200, "speed": 2, "gold": 12, "etype": "tank"} for _ in range(4)] +
-            [{"hp": 400, "speed": 2, "gold": 12, "etype": "tank"} for _ in range(4)]
+            [FastEnemy for _ in range(6)] + 
+            [TankEnemy for _ in range(4)] +
+            [TankEnemy for _ in range(4)]
         ]
         self.current_wave_index = 0
         self.wave_spawned = False
@@ -63,16 +66,16 @@ class FightScene:
         # put wave info into run_state so HUD can read it
         self.run_state["wave_total"] = len(self.waves)
         self.run_state["wave_index"] = self.current_wave_index
-        self.run_state["phase"] = "prep"
+        # self.run_state["phase"] = Phase.Prepare
         self.run_state["deck_count"] = len(self.deck)
-        self.phase = "prep"  # "prep", "running", "victory"
+        self.phase = Phase.Prepare
 
         # input helpers
-        self._panning = False
+        self.is_panning = False
         self._pan_start = (0,0)
         self._cam_start = (0,0)
 
-    def _select_new_piece(self):
+    def select_new_piece(self):
         self.current_piece_key = self.deck[0] if self.deck else None
     
     def screen_to_grid(self, sx, sy):
@@ -96,128 +99,46 @@ class FightScene:
         sy = gy * cs + cs//2 + self.camera["offset_y"]
         return sx, sy
     
-    def handle_input(self, events):
-        for e in events:
-            if e.type == pygame.QUIT:
-                pygame.quit(); sys.exit()
-            elif e.type == pygame.KEYDOWN:
-                if e.key == pygame.K_q:
-                    self.rotation = (self.rotation - 1) % 4
-                elif e.key == pygame.K_e:
-                    self.rotation = (self.rotation + 1) % 4
-                elif e.key == pygame.K_t:
-                    self.placing_tower = not self.placing_tower
-                elif e.key == pygame.K_1:
-                    self.selected_tower_type = 0
-                elif e.key == pygame.K_2:
-                    self.selected_tower_type = 1
-                elif e.key == pygame.K_3:
-                    self.selected_tower_type = 2
-                elif e.key == pygame.K_EQUALS or e.key == pygame.K_PLUS:
-                    self.camera["zoom"] = min(2.5, self.camera["zoom"] + 0.1)
-                elif e.key == pygame.K_MINUS:
-                    self.camera["zoom"] = max(0.6, self.camera["zoom"] - 0.1)
-                elif e.key == pygame.K_ESCAPE:
-                    from scenes.scene_map import MapScene
-                    self.game.change_scene(MapScene(self.game, self.run_state))
+    def handle_input(self, e):
+        if e.type == pygame.KEYDOWN:
+            if e.key == pygame.K_q:
+                self.rotation = (self.rotation - 1) % 4
+            elif e.key == pygame.K_e:
+                self.rotation = (self.rotation + 1) % 4
+            elif e.key == pygame.K_t:
+                self.is_placing_tower = not self.is_placing_tower
+            elif e.key == pygame.K_1:
+                self.selected_tower = BoltTower
+            elif e.key == pygame.K_2:
+                self.selected_tower = SwiftTower
+            elif e.key == pygame.K_3:
+                self.selected_tower = CannonTower
+            elif e.key == pygame.K_EQUALS or e.key == pygame.K_PLUS:
+                self.camera["zoom"] = min(2.5, self.camera["zoom"] + 0.1)
+            elif e.key == pygame.K_MINUS:
+                self.camera["zoom"] = max(0.6, self.camera["zoom"] - 0.1)
+            elif e.key == pygame.K_ESCAPE:
+                from scenes.scene_map import MapScene
+                self.game.change_scene(MapScene(self.game, self.run_state))
 
-            elif e.type == pygame.MOUSEWHEEL:
-                if e.y > 0:
-                    self.camera["zoom"] = min(2.5, self.camera["zoom"] + 0.1)
-                else:
-                    self.camera["zoom"] = max(0.6, self.camera["zoom"] - 0.1)
+        elif e.type == pygame.MOUSEWHEEL:
+            self.zoomimg(e)
 
-            elif e.type == pygame.MOUSEBUTTONDOWN:
-                mx,my = pygame.mouse.get_pos()
-                # right click start panning
-                if e.button == 3:
-                    self._panning = True
-                    self._pan_start = (mx,my)
-                    self._cam_start = (self.camera["offset_x"], self.camera["offset_y"])
-                    continue
+        elif e.type == pygame.MOUSEBUTTONDOWN:
+            mx,my = pygame.mouse.get_pos()
+            if e.button == pygame.BUTTON_RIGHT:
+                self.start_panning(mx, my)
+            elif e.button == pygame.BUTTON_LEFT:
+                self.select_sidebar(mx, my)
+                self.select_cell_in_grid(mx, my)
 
-                # left click: check sidebar Start Wave button
-                sw_clicked = sidebar_click_test(self.game.screen, mx, my)  # helper in renderer
-                if sw_clicked == "start_wave":
-                    if not self.wave_spawned and self.current_wave_index < len(self.waves):
-                        cfg = self.waves[self.current_wave_index]
-                        new_en = spawn_wave([self.start], self.goal, cfg)
-                        for en in new_en:
-                            en.set_path(astar(self.grid, en.pos, self.goal))
-                            self.enemies.append(en)
-                        self.wave_spawned = True
-                        self.phase = "running"
-                        self.run_state["phase"] = "running"
-                    continue
-                elif sw_clicked == "tower_list":
-                    # renderer can return which tower type region was clicked; we ask for a type id
-                    clicked_type = tower_list_click_test(self.game.screen, mx, my)
-                    if clicked_type is not None:
-                        self.selected_tower_type = clicked_type
-                    continue
-                elif sw_clicked == "sidebar_tower_panel":
-                    # clicking the tower-stats section will deselect the tower
-                    self.clicked_tower = None
-                    continue
+        elif e.type == pygame.MOUSEBUTTONUP:
+            if e.button == pygame.BUTTON_RIGHT:
+                self.stop_panning()
 
-                # otherwise clicking map area: place piece or tower, or select existing tower
-                gx, gy = self.screen_to_grid(mx, my)
-                if gx is None:
-                    # click outside grid area (maybe in sidebar) — test for clicking tower list etc done above
-                    continue
-
-                # if not placing tower and there's a current piece -> try place piece
-                if not self.placing_tower and self.current_piece_key is not None:
-                    shape = self.pieces[self.current_piece_key]
-                    rotated = rotate_piece(shape, self.rotation)
-                    if can_place_piece(self.grid, gx, gy, rotated, self.start, self.goal):
-                        cells = get_absolute_cells(gx, gy, rotated)
-                        set_cells(self.grid, cells, OBSTACLE)
-                        if self.deck:
-                            self.deck.pop(0)
-                        self._select_new_piece()
-                        self.run_state["deck_count"] = len(self.deck)
-                        recompute_enemy_paths(self.enemies, self.grid, self.goal)
-                    continue
-
-                # if placing_tower, attempt to place tower on that cell
-                if self.placing_tower:
-                    if can_place_tower(self.grid, gx, gy):
-                        place_tower(self.grid, gx, gy, self.towers, tower_type=self.selected_tower_type)
-                        recompute_enemy_paths(self.enemies, self.grid, self.goal)
-                    continue
-
-                # otherwise, click selects an existing tower if present; find tower at clicked cell
-                clicked = None
-                for t in self.towers:
-                    if t.x == gx and t.y == gy:
-                        clicked = t
-                        break
-                self.clicked_tower = clicked
-                # also update hover state to the clicked tower for immediate range display
-                self.hover_tower = clicked
-                continue
-
-            elif e.type == pygame.MOUSEBUTTONUP:
-                if e.button == 3:
-                    self._panning = False
-
-            elif e.type == pygame.MOUSEMOTION:
-                if self._panning:
-                    mx,my = e.pos
-                    dx = mx - self._pan_start[0]
-                    dy = my - self._pan_start[1]
-                    self.camera["offset_x"] = self._cam_start[0] + dx
-                    self.camera["offset_y"] = self._cam_start[1] + dy
-                # update hover_tower to show range when mouse over a tower
-                mx,my = e.pos
-                gx, gy = self.screen_to_grid(mx, my)
-                self.hover_tower = None
-                if gx is not None:
-                    for t in self.towers:
-                        if t.x == gx and t.y == gy:
-                            self.hover_tower = t
-                            break
+        elif e.type == pygame.MOUSEMOTION:
+            self.update_panning(e)
+            self.show_tower_range(e)
 
     def update(self, dt):
         # update enemies movement
@@ -254,11 +175,11 @@ class FightScene:
             self.current_wave_index += 1
             self.run_state["wave_index"] = self.current_wave_index
             if self.current_wave_index >= len(self.waves):
-                self.phase = "victory"
-                self.run_state["phase"] = "victory"
+                self.phase = Phase.Victory
+                # self.run_state["phase"] = Phase.Victory
             else:
-                self.phase = "prep"
-                self.run_state["phase"] = "prep"
+                self.phase = Phase.Prepare
+                # self.run_state["phase"] = Phase.Prepare
 
     def render(self, screen):
         screen.fill((18, 18, 18))
@@ -266,10 +187,10 @@ class FightScene:
         # Step 1: compute preview path/validity
         preview_path = astar(self.grid, self.start, self.goal)  # default: current path
         preview_valid = True
-
+            
         mx, my = pygame.mouse.get_pos()
         mouse_gx, mouse_gy = self.screen_to_grid(mx, my)
-        if mouse_gx is not None and not self.placing_tower and self.current_piece_key is not None:
+        if self.phase is Phase.Prepare and mouse_gx is not None and not self.is_placing_tower and self.current_piece_key is not None:
             shape = self.pieces[self.current_piece_key]
             rotated = rotate_piece(shape, self.rotation)
             valid = can_place_piece(self.grid, mouse_gx, mouse_gy, rotated, self.start, self.goal)
@@ -284,14 +205,12 @@ class FightScene:
                     preview_valid = True
                 else:
                     preview_valid = False
-            else:
-                preview_valid = False
 
         # Step 2: draw map with path
         draw_zoomed_map(screen, self.grid, self.camera,
             enemies=self.enemies, towers=self.towers,
             projectiles=self.projectiles,
-            draw_path=preview_path, path_valid=preview_valid
+            path=preview_path, is_path_valid=preview_valid
         )
 
         # Step 3: draw core icon
@@ -301,18 +220,19 @@ class FightScene:
         sx = cx + self.camera["offset_x"]
         sy = cy + self.camera["offset_y"]
         pygame.draw.circle(screen, (180, 60, 60), (int(sx), int(sy)), max(6, cs//4))
-        font = pygame.font.SysFont("arial", 16, bold=True)
+        font = pygame.font.SysFont(DEFAULT_FONT_NAME, 16, bold=True)
         txt = font.render(str(self.run_state.get("core_hp", 0)), True, (255,255,255))
         screen.blit(txt, (int(sx - txt.get_width()//2), int(sy - txt.get_height()//2)))
 
         # Step 4: draw preview overlays
-        if mouse_gx is not None:
-            if self.placing_tower:
+        if self.phase is Phase.Prepare and mouse_gx is not None:
+            if self.is_placing_tower:
                 valid = can_place_tower(self.grid, mouse_gx, mouse_gy)
-                draw_tower_preview(screen, mouse_gx, mouse_gy, self.selected_tower_type,
+                tmp_tower = self.selected_tower(mouse_gx, mouse_gy)
+                draw_tower_preview(screen, mouse_gx, mouse_gy, tmp_tower,
                                    cell_size=self.camera["cell_size"], valid=valid, camera=self.camera)
                 if valid:
-                    tmp_t = Tower(mouse_gx, mouse_gy, tower_type=self.selected_tower_type)
+                    tmp_t = self.selected_tower(mouse_gx, mouse_gy)
                     draw_tower_range(screen, tmp_t, cell_size=self.camera["cell_size"],
                                      camera=self.camera, color=(255,255,255,80))
             elif self.current_piece_key is not None:
@@ -341,11 +261,125 @@ class FightScene:
         # Step 7: sidebar
         self.run_state["wave_index"] = self.current_wave_index
         self.run_state["wave_total"] = len(self.waves)
-        self.run_state["phase"] = self.phase
+        # self.run_state["phase"] = self.phase
         self.run_state["deck_count"] = len(self.deck)
-        self.run_state["selected_tower_type"] = self.selected_tower_type
 
-        draw_sidebar(screen, self.run_state, selected_tower=self.clicked_tower)
+        draw_sidebar(screen, self.run_state, self.is_placing_tower, selected_tower=self.clicked_tower)
 
         # Step 8: flip
         pygame.display.flip()
+
+    def select_sidebar(self, mx, my):
+        # left click: check sidebar Start Wave button
+        sw_clicked = sidebar_click_test(self.game.screen, mx, my)  # helper in renderer
+        if sw_clicked == "start_wave":
+            if not self.wave_spawned and self.current_wave_index < len(self.waves):
+                cfg = self.waves[self.current_wave_index]
+                new_en = self.spawn_wave([self.start], self.goal, cfg)
+                for en in new_en:
+                    en.set_path(astar(self.grid, en.pos, self.goal))
+                    self.enemies.append(en)
+                self.wave_spawned = True
+                self.phase = Phase.Running
+                # self.run_state["phase"] = Phase.Running
+        elif sw_clicked == "tower_list":
+            # renderer can return which tower type region was clicked; we ask for a type id
+            clicked_type = tower_list_click_test(self.game.screen, mx, my)
+            if clicked_type is not None:
+                self.selected_tower_type = clicked_type
+        elif sw_clicked == "sidebar_tower_panel":
+            # clicking the tower-stats section will deselect the tower
+            self.clicked_tower = None
+
+    def select_cell_in_grid(self, mx, my):
+        if self.phase is not Phase.Prepare:
+            return
+        gx, gy = self.screen_to_grid(mx, my)
+        outside_grid = gx is None or gy is None
+        if outside_grid:
+            return
+        
+        if self.is_placing_tower:
+            self.place_tower(gx, gy)
+        elif self.current_piece_key:
+            self.place_piece(gx, gy)
+        else:
+            self.select_existing_tower(gx, gy)
+
+    def place_tower(self, gx, gy):
+        # if placing_tower, attempt to place tower on that cell
+        if can_place_tower(self.grid, gx, gy):
+            tower = self.selected_tower(gx, gy)
+            self.towers.append(tower)
+            self.grid[gy][gx] = TOWER
+            recompute_enemy_paths(self.enemies, self.grid, self.goal)
+
+    def place_piece(self, gx, gy):
+        # if not placing tower and there's a current piece -> try place piece
+        shape = self.pieces[self.current_piece_key]
+        rotated = rotate_piece(shape, self.rotation)
+        if can_place_piece(self.grid, gx, gy, rotated, self.start, self.goal):
+            cells = get_absolute_cells(gx, gy, rotated)
+            set_cells(self.grid, cells, OBSTACLE)
+            if self.deck:
+                self.deck.pop(0)
+            self.select_new_piece()
+            self.run_state["deck_count"] = len(self.deck)
+            recompute_enemy_paths(self.enemies, self.grid, self.goal)
+
+    def select_existing_tower(self, gx, gy):
+        self.clicked_tower = None
+        for tower in self.towers:
+            if tower.x == gx and tower.y == gy:
+                self.clicked_tower = tower
+                break
+        self.hover_tower = self.clicked_tower
+
+    def zoomimg(self, e):
+        if e.y > 0:
+            self.camera["zoom"] = min(2.5, self.camera["zoom"] + 0.1)
+        else:
+            self.camera["zoom"] = max(0.6, self.camera["zoom"] - 0.1)
+
+    def start_panning(self, mx, my):
+        self.is_panning = True
+        self._pan_start = (mx, my)
+        self._cam_start = (self.camera["offset_x"], self.camera["offset_y"])
+
+    def stop_panning(self):
+        self.is_panning = False
+
+    def update_panning(self, e):
+        if not self.is_panning:
+            return
+        mx, my = e.pos
+        dx = mx - self._pan_start[0]
+        dy = my - self._pan_start[1]
+        self.camera["offset_x"] = self._cam_start[0] + dx
+        self.camera["offset_y"] = self._cam_start[1] + dy
+
+    def show_tower_range(self, e):
+        mx, my = e.pos
+        gx, gy = self.screen_to_grid(mx, my)
+        self.hover_tower = None
+        if gx is not None:
+            for t in self.towers:
+                if t.x == gx and t.y == gy:
+                    self.hover_tower = t
+                    break
+
+    def spawn_wave(self, spawn_points, goal, wave_config):
+        """
+        Create a wave of enemies.
+        """
+        enemies = []
+        for sp in spawn_points:
+            for EnemyClass in wave_config:
+                e = EnemyClass(sp, goal)
+                enemies.append(e)
+        return enemies
+    
+class Phase(Enum):
+    Prepare = 1
+    Running = 2
+    Victory = 3

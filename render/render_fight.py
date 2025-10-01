@@ -1,4 +1,5 @@
 import pygame, time
+from constants import *
 from grid import EMPTY, OBSTACLE, TOWER, cell_center
 
 # -----------------------------
@@ -20,23 +21,59 @@ def draw_grid(surf, grid, cell_size):
             pygame.draw.rect(surf, colors.get(val, (60,60,60)), cell_rect(x, y, cell_size))
             pygame.draw.rect(surf, (80, 80, 80), cell_rect(x, y, cell_size), 1)
 
-def draw_zoomed_map(surf, grid, camera, enemies=None, towers=None, projectiles=None, draw_path=None, path_valid=True):
+def draw_zoomed_map(surf, grid, camera, enemies=None, towers=None, projectiles=None, path=None, is_path_valid=True):
     """Draw the fight grid, enemies, towers, projectiles at zoomed scale with camera offset."""
     cs = int(camera["cell_size"] * camera["zoom"])
     gw, gh = len(grid[0]), len(grid)
     temp = pygame.Surface((gw * cs, gh * cs))
     draw_grid(temp, grid, cs)
+    draw_path(temp, cs, path, is_path_valid)
 
+    # enemies
+    if enemies:
+        for e in enemies:
+            px, py = cell_center(e.pos[0], e.pos[1], cs)
+            r = max(4, cs // 3)
+            pygame.draw.circle(temp, e.color, (px, py), r)
+
+    # towers
+    if towers:
+        for tower in towers:
+            rx, ry, rw, rh = cell_rect(tower.x, tower.y, cs)
+            # shrink tower to ~70% of cell
+            size = int(cs * 0.7)
+            cx = rx + rw // 2
+            cy = ry + rh // 2
+            rect = pygame.Rect(cx - size // 2, cy - size // 2, size, size)
+
+            pygame.draw.rect(temp, tower.color, rect)
+
+            # tower name
+            font = pygame.font.SysFont(DEFAULT_FONT_NAME, 12, bold=True)
+            txt = font.render(tower.name, True, (255, 255, 255))
+            temp.blit(txt, (cx - txt.get_width() // 2, rect.top - 12))
+
+    # projectiles
+    if projectiles:
+        for p in projectiles:
+            px = p.x * cs + cs // 2
+            py = p.y * cs + cs // 2
+            pygame.draw.circle(temp, (255, 255, 255), (int(px), int(py)), max(2, cs // 8))
+
+    # blit with camera offset
+    surf.blit(temp, (camera["offset_x"], camera["offset_y"]))
+
+def draw_path(temp, cs, path, is_path_valid):
     # path (TODO: change to dashed, keep it constant during fight including prep and fight phases)
-    # if draw_path and len(draw_path) > 1:
-    #     pts = [cell_center(x, y, cs) for x, y in draw_path]
+    # if path and len(path) > 1:
+    #     pts = [cell_center(x, y, cs) for x, y in path]
     #     pygame.draw.lines(temp, (255, 255, 0), False, pts, 2)
-    if draw_path and len(draw_path) > 1:
-        pts = [cell_center(x, y, cs) for x, y in draw_path]
+    if path and len(path) > 1:
+        pts = [cell_center(x, y, cs) for x, y in path]
         # Dashed line
         dash_len = 10
         gap_len = 6
-        color = (255, 255, 0) if path_valid else (255, 60, 60)
+        color = (255, 255, 0) if is_path_valid else (255, 60, 60)
         for i in range(len(pts) - 1):
             x1, y1 = pts[i]
             x2, y2 = pts[i + 1]
@@ -52,54 +89,10 @@ def draw_zoomed_map(surf, grid, camera, enemies=None, towers=None, projectiles=N
                 pygame.draw.line(temp, color, start, end, 2)
                 seg += dash_len + gap_len
 
-    # enemies
-    if enemies:
-        for e in enemies:
-            px, py = cell_center(e.pos[0], e.pos[1], cs)
-            color = (255, 200, 50)
-            if e.etype == "fast":
-                color = (255, 160, 40)
-            elif e.etype == "tank":
-                color = (160, 50, 200)
-            r = max(4, cs // 3)
-            pygame.draw.circle(temp, color, (px, py), r)
-
-    # towers
-    if towers:
-        for t in towers:
-            rx, ry, rw, rh = cell_rect(t.x, t.y, cs)
-            # shrink tower to ~70% of cell
-            size = int(cs * 0.7)
-            cx = rx + rw // 2
-            cy = ry + rh // 2
-            rect = pygame.Rect(cx - size // 2, cy - size // 2, size, size)
-
-            if t.tower_type == 0:
-                pygame.draw.rect(temp, (220, 40, 40), rect)
-            elif t.tower_type == 1:
-                pygame.draw.rect(temp, (40, 180, 40), rect)
-            elif t.tower_type == 2:
-                pygame.draw.rect(temp, (40, 120, 220), rect)
-
-            # tower name
-            font = pygame.font.SysFont("arial", 12, bold=True)
-            txt = font.render(t.name, True, (255, 255, 255))
-            temp.blit(txt, (cx - txt.get_width() // 2, rect.top - 12))
-
-    # projectiles
-    if projectiles:
-        for p in projectiles:
-            px = p.x * cs + cs // 2
-            py = p.y * cs + cs // 2
-            pygame.draw.circle(temp, (255, 255, 255), (int(px), int(py)), max(2, cs // 8))
-
-    # blit with camera offset
-    surf.blit(temp, (camera["offset_x"], camera["offset_y"]))
-
 # -----------------------------
 # Tower previews / range / projectiles
 # -----------------------------
-def draw_tower_preview(surf, gx, gy, tower_type, cell_size, valid, camera):
+def draw_tower_preview(surf, gx, gy, tower, cell_size, valid, camera):
     """Draws a ghost/preview version of a tower at mouse position with color based on validity."""
     cs = int(cell_size * camera["zoom"])
     cx = gx * cs + cs // 2 + camera["offset_x"]
@@ -112,10 +105,8 @@ def draw_tower_preview(surf, gx, gy, tower_type, cell_size, valid, camera):
     preview.fill(color)
     surf.blit(preview, rect)
 
-    # tower name
-    names = ["Bolt", "Swift", "Cannon"]
-    font = pygame.font.SysFont("arial", 12, bold=True)
-    txt = font.render(names[tower_type], True, (255, 255, 255))
+    font = pygame.font.SysFont(DEFAULT_FONT_NAME, 12, bold=True)
+    txt = font.render(tower.name, True, (255, 255, 255))
     surf.blit(txt, (cx - txt.get_width() // 2, rect.top - 12))
 
 def draw_piece_preview(surf, gx, gy, rotated_cells, cell_size, valid, camera):
@@ -152,7 +143,7 @@ _sidebar_rects = {
     "tower_panel": None,
 }
 
-def draw_sidebar(surf, run_state, selected_tower=None):
+def draw_sidebar(surf, run_state, is_placing_tower, selected_tower=None):
     w, h = surf.get_size()
     sidebar_w = 260
     rect = pygame.Rect(w - sidebar_w, 0, sidebar_w, h)
@@ -161,7 +152,7 @@ def draw_sidebar(surf, run_state, selected_tower=None):
     padding = 16
     x = rect.left + padding
     y = padding
-    f = pygame.font.SysFont("arial", 20, bold=True)
+    f = pygame.font.SysFont(DEFAULT_FONT_NAME, 20, bold=True)
 
     # Core / Gold / Wave
     core_hp = run_state.get("core_hp", 0)
@@ -184,7 +175,7 @@ def draw_sidebar(surf, run_state, selected_tower=None):
     for i in range(3):
         box = pygame.Rect(x, y, 40, 40)
         pygame.draw.rect(surf, colors[i], box)
-        surf.blit(pygame.font.SysFont("arial", 14).render(names[i], True, (255,255,255)), (x+50, y+12))
+        surf.blit(pygame.font.SysFont(DEFAULT_FONT_NAME, 14).render(names[i], True, (255,255,255)), (x+50, y+12))
         _sidebar_rects["tower_list"].append((i, box.copy()))
         y += 50
 
@@ -197,14 +188,22 @@ def draw_sidebar(surf, run_state, selected_tower=None):
         stats = selected_tower.get_stats()
         fy = y + 8
         for k,v in stats.items():
-            surf.blit(pygame.font.SysFont("arial", 16).render(f"{k}: {v}", True, (255,255,255)), (x+6, fy))
+            surf.blit(pygame.font.SysFont(DEFAULT_FONT_NAME, 16).render(f"{k}: {v}", True, (255,255,255)), (x+6, fy))
             fy += 20
     y += panel_h + 20
+
+    # tutorial
+    if (is_placing_tower):
+        surf.blit(f.render(f"T: place piece", True, (2,255,255)), (x, y)); y += 30
+    else:
+        surf.blit(f.render(f"T: place tower", True, (2,255,255)), (x, y)); y += 30
+        surf.blit(f.render(f"Q: Rotate left", True, (2,255,255)), (x, y)); y += 30
+        surf.blit(f.render(f"E: Rotate right", True, (2,255,255)), (x, y)); y += 30
 
     # Start wave button
     btn_rect = pygame.Rect(x, h - 80, sidebar_w - 2*padding, 48)
     pygame.draw.rect(surf, (100,180,100), btn_rect, border_radius=8)
-    txt = pygame.font.SysFont("arial", 20, bold=True).render("Start Wave", True, (0,0,0))
+    txt = pygame.font.SysFont(DEFAULT_FONT_NAME, 20, bold=True).render("Start Wave", True, (0,0,0))
     surf.blit(txt, (btn_rect.centerx - txt.get_width()//2, btn_rect.centery - txt.get_height()//2))
     _sidebar_rects["start_wave"] = btn_rect.copy()
 
