@@ -25,6 +25,12 @@ class RunState:
         self.wave_total = 0
         self.deck_count = 0
 
+    def is_level_cleared(self, level_id):
+        for level in self.levels:
+            if level["id"] == level_id:
+                return level["cleared"]
+        return False
+
 def create_run_state():
     """Initializes core HP, gold, level map, player position, etc. for a new run."""
     return RunState()

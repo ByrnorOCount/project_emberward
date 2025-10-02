@@ -13,6 +13,7 @@ class Enemy:
         self.path = []         # list of cells from start → goal
         self.t = 0.0           # interpolation between path[0] and path[1]
         self.hp = data["hp"]
+        self.max_hp = data["hp"]
         self.speed = data["speed"]
         self.gold = data["gold"]
         self.etype = etype     # e.g. "fast", "tank", "basic"

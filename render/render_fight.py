@@ -74,6 +74,17 @@ def draw_zoomed_map(surf, grid, camera, enemies=None, towers=None, projectiles=N
             r = max(4, cs // 3)
             pygame.draw.circle(temp, e.color, (px, py), r)
 
+            # Draw health bar
+            if e.hp < e.max_hp:
+                bar_width = r * 2
+                bar_height = max(2, r // 4)
+                bar_x = px - r
+                bar_y = py - r - bar_height - 2 # Position above the circle
+                health_pct = max(0, e.hp / e.max_hp)
+                
+                pygame.draw.rect(temp, (200, 0, 0), (bar_x, bar_y, bar_width, bar_height))
+                pygame.draw.rect(temp, (0, 200, 0), (bar_x, bar_y, bar_width * health_pct, bar_height))
+
     # projectiles
     if projectiles:
         for p in projectiles:

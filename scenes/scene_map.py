@@ -14,10 +14,10 @@ class MapScene:
         if self.run_state and self.run_state.levels:
             num_levels = len(self.run_state.levels)
             for i, level_info in enumerate(self.run_state.levels):
-                # Only show levels that are cleared or the first uncleared one
-                if i > 0 and not self.run_state.levels[i-1]["cleared"]:
+                # Only show levels that are cleared, or the first uncleared one.
+                # If a level is not the first one, and the one before it is not cleared, stop.
+                if i > 0 and not self.run_state.is_level_cleared(self.run_state.levels[i-1]["id"]):
                     break
-
                 pos_x = w * (i + 1) // (num_levels + 1)
                 self.level_nodes.append({
                     "id": level_info["id"],

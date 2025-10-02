@@ -7,6 +7,10 @@
 # more towers and enemies?
 # add search algo selection on sidebar
 # MapScene.update()
+# incoming wave
+# victory screen, press any key to move back to map
+# show levels not yet unlocked as gray/locked
+# sound effects, music, assets
 
 # main.py
 class Game:
