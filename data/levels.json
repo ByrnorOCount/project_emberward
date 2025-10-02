@@ -1,0 +1,60 @@
+{
+  "levels": [
+    {
+      "id": 1,
+      "name": "Level 1",
+      "gold": 100,
+      "waves": [
+        {
+          "sequence": [
+            {"type": "basic", "count": 5, "spawn_interval": 0.5},
+            {"type": "tank", "count": 1, "spawn_interval": 0.5}
+          ]
+        },
+        {
+          "sequence": [
+            {"type": "basic", "count": 4, "spawn_interval": 0.4},
+            {"type": "tank", "count": 2, "spawn_interval": 0.6},
+            {"type": "basic", "count": 2, "spawn_interval": 0.4},
+            {"type": "fast", "count": 2, "spawn_interval": 0.3}
+          ]
+        },
+        {
+          "sequence": [
+            {"type": "tank", "count": 4, "spawn_interval": 0.5},
+            {"type": "fast", "count": 4, "spawn_interval": 0.3},
+            {"type": "basic", "count": 4, "spawn_interval": 0.4},
+            {"type": "tank", "count": 4, "spawn_interval": 0.7}
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Level 2",
+      "gold": 150,
+      "waves": [
+        {
+          "sequence": [
+            {"type": "fast", "count": 6, "spawn_interval": 0.3},
+            {"type": "basic", "count": 4, "spawn_interval": 0.4}
+          ]
+        },
+        {
+          "sequence": [
+            {"type": "tank", "count": 3, "spawn_interval": 0.6},
+            {"type": "fast", "count": 5, "spawn_interval": 0.3}
+          ]
+        },
+        {
+          "sequence": [
+            {"type": "tank", "count": 4, "spawn_interval": 0.5},
+            {"type": "fast", "count": 4, "spawn_interval": 0.3},
+            {"type": "basic", "count": 4, "spawn_interval": 0.4},
+            {"type": "tank", "count": 4, "spawn_interval": 0.7}
+          ]
+        }
+      ]
+    }
+  ]
+}

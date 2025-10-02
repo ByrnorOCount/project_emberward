@@ -9,7 +9,7 @@ The core gameplay loop combines maze-building and tower defense with roguelite p
 1. **Build Your Maze**: Before and during waves, place Tetris-shaped pieces on the grid to create a long, winding path for enemies. The path from the enemy spawn to your core is always visible.
 2. **Place Towers**: Build towers on the pieces you've placed. Each tower has unique stats for damage, range, and fire rate.
 3. **Defend the Core**: Click "Start Wave" and watch your defenses hold off incoming enemies. Earn gold for each enemy defeated.
-4. **Progress**: Survive all waves to win the level. You'll return to a map screen where you can choose your next battle, carrying over your core HP and gold. If your core's HP drops to zero, the run ends.
+4. **Progress**: Survive all waves to win the level. You'll return to a map screen where you can choose your next battle, carrying over your core HP. If your core's HP drops to zero, the run ends.
 
 ## Controls
 
@@ -29,11 +29,11 @@ The core gameplay loop combines maze-building and tower defense with roguelite p
 
 ## Features
 
-- **Dynamic A* Pathfinding**: Enemies constantly recalculate their path to your core as you place and remove obstacles.
+- **Dynamic A\* Pathfinding**: Enemies constantly recalculate their path to your core as you place and remove obstacles.
 - **Tetris-like Maze Building**: Use a deck of familiar puzzle pieces to construct your defenses. You can't block the path completely!
 - **Multiple Tower Types**: Deploy different towers, each with its own cost, damage, range, and fire rate.
 - **Wave-Based Survival**: Face increasingly challenging waves of enemies with varying stats.
-- **Roguelite Progression**: Move between nodes on a map, with your core HP and gold persisting between fights.
+- **Roguelite Progression**: Move between level on a map, with your core HP persisting between fights. Each level provides a set amount of gold for the battle.
 - **Interactive UI**: A clean sidebar provides all necessary information, including gold, core HP, wave status, and tower selection.
 
 ## How to Run
@@ -59,6 +59,6 @@ The core gameplay loop combines maze-building and tower defense with roguelite p
 
 - Tower upgrades for damage, range, and special effects.
 - More enemy types (e.g., flying, armored, fast).
-- Special map nodes with unique challenges or rewards.
+- Special map levels with unique challenges or rewards.
 - Visual effects for projectiles, impacts, and enemy deaths.
 - Sound effects and music.

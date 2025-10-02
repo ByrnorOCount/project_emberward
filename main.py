@@ -15,6 +15,7 @@ class Game:
         pygame.display.set_caption("Emberward Clone")
         self.clock = pygame.time.Clock()
         self.running = True
+        self.run_state = None
 
         self.scene = MenuScene(self)
 

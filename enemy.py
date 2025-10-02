@@ -42,7 +42,6 @@ class Enemy:
             self.pos = (p0[0] + (p1[0] - p0[0]) * self.t,
                         p0[1] + (p1[1] - p0[1]) * self.t)
 
-
     def reached_goal(self):
         """True if this enemy has arrived at its goal."""
         return len(self.path) <= 1 and self.pos == self.goal
@@ -50,21 +49,18 @@ class Enemy:
     def is_dead(self):
         return self.hp <= 0
 
-# --- Utilities for multiple enemies ---
-def recompute_enemy_paths(enemies, grid, goal):
-    """Recompute paths for all enemies."""
-    for e in enemies:
-        e.set_path(astar(grid, e.pos, goal))
+ENEMY_CLASSES = {
+    "basic": Enemy, 
+    "fast": Enemy, 
+    "tank": Enemy
+}
 
-def spawn_wave(spawn_points, goal, wave_seq):
-    """Spawn enemies following ordered sequence from waves.json"""
-    enemies = []
-    for step in wave_seq:  # [{type, count}, ...]
-        for _ in range(step["count"]):
-            for sp in spawn_points:
-                e = Enemy(sp, goal, etype=step["type"])
-                enemies.append(e)
-    return enemies
+# ===================
+# Utilities
+# ===================
+def create_enemy(etype, start, goal):
+    """Create enemy instance from JSON type."""
+    return ENEMY_CLASSES.get(etype, Enemy)(start, goal, etype=etype)
 
 def update_enemies(enemies, dt, goal):
     """Update all enemies; return list of enemies that reached the goal."""
@@ -75,17 +71,12 @@ def update_enemies(enemies, dt, goal):
             reached.append(e)
     return reached
 
+def recompute_enemy_paths(enemies, grid, goal):
+    """Recompute paths for all enemies."""
+    for e in enemies:
+        start_node = (round(e.pos[0]), round(e.pos[1]))
+        e.set_path(astar(grid, start_node, goal))
+
 def enemy_data():
+    """Exposes raw enemy data from JSON."""
     return _ENEMY_DATA
-
-class BasicEnemy(Enemy):
-    def __init__(self, start, goal):
-        super().__init__(start, goal, hp=100, speed=1.25, gold=6, color=(255, 200, 50), name="Basic")
-        
-class FastEnemy(Enemy):
-    def __init__(self, start, goal):
-        super().__init__(start, goal, hp=50, speed=3, gold=3, color=(255, 160, 40), name="Fast")
-
-class TankEnemy(Enemy):
-    def __init__(self, start, goal):
-        super().__init__(start, goal, hp=350, speed=0.85, gold=20, color=(160, 50, 200), name="Tank")

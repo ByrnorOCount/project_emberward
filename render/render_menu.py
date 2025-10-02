@@ -1,30 +1,7 @@
 import pygame, time
 from constants import *
 
-def make_rainbow_surface(size):
-    """Create a horizontal rainbow gradient surface, rotated diagonally"""
-    w, h = size
-    rainbow = pygame.Surface((w * 2, h * 2))
-    for x in range(rainbow.get_width()):
-        # Use half the width for the hue calculation to create one full 360-degree cycle
-        hue = (x / (rainbow.get_width() / 2)) * 360 % 360
-        color = pygame.Color(0)
-        color.hsva = (hue, 70, 100, 100)  # 70 saturation = soft rainbow
-        pygame.draw.line(rainbow, color, (x, 0), (x, rainbow.get_height()))
-    return rainbow
-
 _rainbow_cache = None
-
-def draw_grid_background(surf, cell_size=64):
-    """Draws a subtle gray grid background."""
-    w, h = surf.get_size()
-    base_color = (40, 40, 40)
-    grid_color = (60, 60, 60)
-    surf.fill(base_color)
-    for x in range(0, w, cell_size):
-        pygame.draw.line(surf, grid_color, (x, 0), (x, h))
-    for y in range(0, h, cell_size):
-        pygame.draw.line(surf, grid_color, (0, y), (w, y))
 
 def draw_menu(surf):
     """Draws start menu with subtle diagonal rainbow overlay and interactive buttons."""
@@ -80,3 +57,26 @@ def draw_button(surf, btn):
     txt = btn.font.render(btn.text, True, (0,0,0))
     txt_rect = txt.get_rect(center=rect.center)
     surf.blit(txt, txt_rect)
+
+def make_rainbow_surface(size):
+    """Create a horizontal rainbow gradient surface, rotated diagonally"""
+    w, h = size
+    rainbow = pygame.Surface((w * 2, h * 2))
+    for x in range(rainbow.get_width()):
+        # Use half the width for the hue calculation to create one full 360-degree cycle
+        hue = (x / (rainbow.get_width() / 2)) * 360 % 360
+        color = pygame.Color(0)
+        color.hsva = (hue, 70, 100, 100)  # 70 saturation = soft rainbow
+        pygame.draw.line(rainbow, color, (x, 0), (x, rainbow.get_height()))
+    return rainbow
+
+def draw_grid_background(surf, cell_size=64):
+    """Draws a subtle gray grid background."""
+    w, h = surf.get_size()
+    base_color = (40, 40, 40)
+    grid_color = (60, 60, 60)
+    surf.fill(base_color)
+    for x in range(0, w, cell_size):
+        pygame.draw.line(surf, grid_color, (x, 0), (x, h))
+    for y in range(0, h, cell_size):
+        pygame.draw.line(surf, grid_color, (0, y), (w, y))

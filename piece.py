@@ -13,6 +13,16 @@ def get_piece_shapes():
         'Z': [(0,0),(1,0),(1,1),(2,1)]
     }
     
+PIECE_COLORS = {
+    'I': (0, 240, 240),   # Cyan
+    'O': (240, 240, 0),   # Yellow
+    'T': (160, 0, 240),   # Purple
+    'L': (240, 160, 0),   # Orange
+    'J': (0, 0, 240),     # Blue
+    'S': (0, 240, 0),     # Green
+    'Z': (240, 0, 0),     # Red
+}
+
 def rotate_piece(cells, rotation):
     """Rotates a piece's relative cell coordinates by 90° increments."""
     out = cells
@@ -22,17 +32,6 @@ def rotate_piece(cells, rotation):
         miny = min(y for _, y in out)
         out = [(x - minx, y - miny) for x, y in out]
     return out
-    
-def is_path_blocked(grid, cells, start, goal):
-    """Check if placing cells on grid would block path from start to goal."""
-    temp_grid = [row[:] for row in grid]
-    for x, y in cells:
-        temp_grid[y][x] = OBSTACLE
-    
-    # A* returns a path of length > 1 if a path is found.
-    # It returns [start] (length 1) or None if no path is found.
-    path = astar(temp_grid, start, goal)
-    return not path or len(path) <= 1
 
 def can_place_piece(grid, gx, gy, cells, start, goal):
     """Checks if piece fits legally at grid position (inside bounds, no collision)."""
@@ -47,6 +46,17 @@ def can_place_piece(grid, gx, gy, cells, start, goal):
     if is_path_blocked(grid, absolute_cells, start, goal):
         return False
     return True
+
+def is_path_blocked(grid, cells, start, goal):
+    """Check if placing cells on grid would block path from start to goal."""
+    temp_grid = [row[:] for row in grid]
+    for x, y in cells:
+        temp_grid[y][x] = OBSTACLE
+    
+    # A* returns a path of length > 1 if a path is found.
+    # It returns [start] (length 1) or None if no path is found.
+    path = astar(temp_grid, start, goal)
+    return not path or len(path) <= 1
 
 def get_absolute_cells(gx, gy, cells):
     """Converts relative piece coords into absolute grid coords for placement."""

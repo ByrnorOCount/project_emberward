@@ -1,4 +1,4 @@
-EMPTY, OBSTACLE, TOWER = 0, 1, 2
+EMPTY, OBSTACLE, TOWER, FIXED_OBSTACLE = 0, 1, 2, 4
 
 def create_grid(w, h):
     """Returns a 2D list initialized with EMPTY cells."""

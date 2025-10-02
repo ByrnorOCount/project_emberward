@@ -1,4 +1,5 @@
 # TODO Add option to switch between search algos to compare to A*
+# add search algo selection on sidebar
 
 from heapq import heappush, heappop
 from grid import is_walkable, get_neighbors4

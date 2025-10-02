@@ -2,6 +2,7 @@ import sys, pygame
 from constants import *
 from render.render_menu import draw_menu, draw_button
 from .scene_map import MapScene
+from run_state import create_run_state
 
 class Button:
     def __init__(self, text, action, center, size=(300, 70)):
@@ -33,6 +34,7 @@ class MenuScene:
                 if btn.rect.collidepoint(event.pos):
                     action = btn.action
                     if action == "play":
+                        self.game.run_state = create_run_state()
                         self.game.change_scene(MapScene(self.game))
                     elif action == "quit":
                         pygame.quit(); sys.exit()
@@ -40,7 +42,7 @@ class MenuScene:
                         print("Options clicked!")  # TODO: add options menu
 
     def update(self, dt):
-        pass  # not sure
+        pass # not sure
 
     def render(self, screen):
         draw_menu(screen)
