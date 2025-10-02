@@ -13,6 +13,7 @@ from render.render_fight import draw_zoomed_map, draw_tower_preview, draw_piece_
 class FightScene:
     def __init__(self, game, level):
         self.game = game
+        self.level = level
 
         self.grid = create_grid(30, 20)
         self.gw = len(self.grid[0])
@@ -45,14 +46,16 @@ class FightScene:
         self.current_wave_index = 0
         self.wave_spawned = False
 
-        self.level = level
-        self.player = Player(self.level.core_hp, self.level.gold, self.current_wave_index, len(self.deck))
+        self.player = Player(self.level.gold, 0, len(self.deck))
         self.phase = Phase.Prepare
 
         # input helpers
         self.is_panning = False
         self._pan_start = (0,0)
         self._cam_start = (0,0)
+        
+        self.spawn_queue = []  # list of (EnemyClass, spawn_time)
+        self.time_elapsed = 0.0
 
     def select_new_piece(self):
         self.current_piece_key = self.deck[0] if self.deck else None
@@ -120,6 +123,17 @@ class FightScene:
             self.show_tower_range(e)
 
     def update(self, dt):
+        self.time_elapsed += dt
+
+        for info in list(self.spawn_queue):
+            EnemyClass, spawn_time = info
+            if self.time_elapsed >= spawn_time:
+                e = EnemyClass(self.start, self.goal)
+                e.set_path(astar(self.grid, e.pos, self.goal))
+                self.enemies.append(e)
+                self.spawn_queue.remove(info)
+
+
         # update enemies movement
         reached = update_enemies(self.enemies, dt, self.goal)
         for e in reached:
@@ -248,11 +262,7 @@ class FightScene:
         sw_clicked = sidebar_click_test(self.game.screen, mx, my)  # helper in renderer
         if sw_clicked == "start_wave":
             if not self.wave_spawned and self.current_wave_index < len(self.level.waves):
-                cfg = self.level.waves[self.current_wave_index]
-                new_en = self.spawn_wave([self.start], self.goal, cfg)
-                for en in new_en:
-                    en.set_path(astar(self.grid, en.pos, self.goal))
-                    self.enemies.append(en)
+                self.spawn_wave()
                 self.wave_spawned = True
                 self.phase = Phase.Running
         elif sw_clicked == "tower_list":
@@ -341,16 +351,18 @@ class FightScene:
                     self.hover_tower = t
                     break
 
-    def spawn_wave(self, spawn_points, goal, wave_config):
+    def spawn_wave(self):
         """
         Create a wave of enemies.
         """
-        enemies = []
-        for sp in spawn_points:
-            for EnemyClass in wave_config:
-                e = EnemyClass(sp, goal)
-                enemies.append(e)
-        return enemies
+        wave = self.level.waves[self.current_wave_index]
+        self.spawn_queue.clear()
+        self.time_elapsed = 0.0
+        randRange = 2.5
+        for group in wave:
+            for i in range(group.count):
+                spawn_time = i * group.spawn_interval + random.uniform(-randRange, randRange)
+                self.spawn_queue.append((group.name, spawn_time))
     
 class Camera:
     def __init__(self, offset_x, offset_y, zoom, cell_size):

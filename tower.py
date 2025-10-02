@@ -77,7 +77,7 @@ def update_towers(towers, enemies, dt, projectiles):
 
 class BoltTower(Tower):
     def __init__(self, x, y):
-        super().__init__(x, y, damage=12, range_=3.0, fire_rate=1.0, name="Bolt", color=(220, 40, 40))
+        super().__init__(x, y, damage=120, range_=3.0, fire_rate=1.0, name="Bolt", color=(220, 40, 40))
 
 
 class SwiftTower(Tower):

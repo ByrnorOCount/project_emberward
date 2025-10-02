@@ -159,13 +159,13 @@ def draw_sidebar(surf, level, player, is_placing_tower, selected_tower=None):
     gold = player.gold
     wave_i = player.wave_index
     wave_t = len(level.waves)
-    surf.blit(f.render(f"Core HP: {core_hp}", True, (255,255,255)), (x, y)); y += 30
+    surf.blit(f.render(f"HP: {core_hp}", True, (255,255,255)), (x, y)); y += 30
     surf.blit(f.render(f"Gold: {gold}", True, (255,255,255)), (x, y)); y += 30
     surf.blit(f.render(f"Wave: {wave_i}/{wave_t}", True, (255,255,255)), (x, y)); y += 40
 
     # Deck
     deck = player.deck_count
-    surf.blit(f.render(f"Deck: {deck} pieces", True, (255,255,255)), (x, y)); y += 40
+    surf.blit(f.render(f"Deck left: {deck} pieces", True, (255,255,255)), (x, y)); y += 40
 
     # Towers list
     surf.blit(f.render("Towers (1/2/3):", True, (200,200,200)), (x, y)); y += 28

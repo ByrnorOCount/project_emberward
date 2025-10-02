@@ -61,12 +61,12 @@ def update_enemies(enemies, dt, goal):
 
 class BasicEnemy(Enemy):
     def __init__(self, start, goal):
-        super().__init__(start, goal, hp=100, speed=3, gold=6, color=(255, 200, 50), name="Basic")
+        super().__init__(start, goal, hp=100, speed=1.25, gold=6, color=(255, 200, 50), name="Basic")
         
 class FastEnemy(Enemy):
     def __init__(self, start, goal):
-        super().__init__(start, goal, hp=50, speed=5, gold=3, color=(255, 160, 40), name="Fast")
+        super().__init__(start, goal, hp=50, speed=3, gold=3, color=(255, 160, 40), name="Fast")
 
 class TankEnemy(Enemy):
     def __init__(self, start, goal):
-        super().__init__(start, goal, hp=250, speed=1, gold=20, color=(160, 50, 200), name="Tank")
+        super().__init__(start, goal, hp=350, speed=0.85, gold=20, color=(160, 50, 200), name="Tank")

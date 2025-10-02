@@ -1,16 +1,26 @@
 from enemy import FastEnemy, BasicEnemy, TankEnemy
 
 class Level:
-    def __init__(self, name, waves, core_hp=10, gold=50, total_wave = 0, deck_count=20):
+    def __init__(self, name, waves, gold=50, total_wave = 0):
         self.waves = waves
         self.name = name
-        self.core_hp =core_hp
         self.gold = gold
         self.total_wave = total_wave
-        deck_count = deck_count
+
+class EnemyGroup:
+    def __init__(self, name, count, spawn_interval=0.5):
+        """
+        enemy_type: class reference, e.g., FastEnemy
+        count: number of enemies in this group
+        spawn_interval: seconds between each spawn
+        """
+        self.name = name
+        self.count = count
+        self.spawn_interval = spawn_interval
+
         
 class Player:
-    def __init__(self, hp, gold, wave_index, deck_count):
+    def __init__(self, gold, wave_index, deck_count, hp = 100):
         self.current_node = 0
         self.hp = hp
         self.gold = gold
@@ -19,15 +29,18 @@ class Player:
 
 
 level1 = Level(
-    name = "1",
-    waves = [
-        # wave 1: light fast enemies
-        [FastEnemy for _ in range(8)],
-        # wave 2: basic + 1 tank
-        [BasicEnemy for _ in range(6)] + 
-        [TankEnemy for _ in range(2)],
-        # wave 3: mixed heavier set
-        [FastEnemy for _ in range(6)] + 
-        [TankEnemy for _ in range(4)] +
-        [TankEnemy for _ in range(4)]
-        ])    
+    name="1",
+    waves=[
+        # Wave 1
+        [EnemyGroup(FastEnemy, count=8, spawn_interval=0.3)],
+
+        # Wave 2
+        [EnemyGroup(BasicEnemy, 6, 0.4),
+         EnemyGroup(TankEnemy, 2, 0.6)],
+
+        # Wave 3
+        [EnemyGroup(FastEnemy, 6, 0.3),
+         EnemyGroup(TankEnemy, 4, 0.5),
+         EnemyGroup(TankEnemy, 4, 0.7)],
+    ]
+)
