@@ -1,4 +1,5 @@
 import pygame, time
+from constants import *
 
 def make_rainbow_surface(size):
     """Create a horizontal rainbow gradient surface, rotated diagonally"""
@@ -25,8 +26,10 @@ def draw_grid_background(surf, cell_size=64):
     for y in range(0, h, cell_size):
         pygame.draw.line(surf, grid_color, (0, y), (w, y))
 
-def draw_menu(surf, buttons):
+def draw_menu(surf):
     """Draws start menu with subtle diagonal rainbow overlay and interactive buttons."""
+    surf.fill((30, 30, 30))
+
     global _rainbow_cache
     w, h = surf.get_size()
     t = time.time() * 40  # movement speed
@@ -55,32 +58,25 @@ def draw_menu(surf, buttons):
     surf.blit(rotated_rainbow, rotated_rainbow.get_rect(center=(w // 2, h // 2)))
 
     # title
-    font_title = pygame.font.SysFont("arial", 72, bold=True)
+    font_title = pygame.font.SysFont(DEFAULT_FONT_NAME, 72, bold=True)
     title_surf = font_title.render("Emberward Clone", True, (255, 255, 255))
     title_rect = title_surf.get_rect(center=(w // 2, h // 4))
     surf.blit(title_surf, title_rect)
 
-    # buttons
-    font_btn = pygame.font.SysFont("arial", 42, bold=True)
+def draw_button(surf, btn):
     mx, my = pygame.mouse.get_pos()
-    btn_w, btn_h = 300, 70
-    start_y = h // 2
-    spacing = 100
+    hovered = btn.rect.collidepoint(mx, my)
 
-    for i, b in enumerate(buttons):
-        rect = pygame.Rect(0, 0, btn_w, btn_h)
-        rect.center = (w // 2, start_y + i * spacing)
+    color = (200,200,200) if hovered else (160,160,160)
+    border = (255,255,255) if hovered else (60,60,60)
 
-        hovered = rect.collidepoint(mx, my)
-        color = (200, 200, 200) if hovered else (160, 160, 160)
-        border = (255, 255, 255) if hovered else (60, 60, 60)
+    rect = btn.rect.copy()
+    if hovered:
+        rect.inflate_ip(10, 10)
 
-        if hovered:
-            rect.inflate_ip(10, 10)
+    pygame.draw.rect(surf, color, rect, border_radius=12)
+    pygame.draw.rect(surf, border, rect, 4, border_radius=12)
 
-        pygame.draw.rect(surf, color, rect, border_radius=12)
-        pygame.draw.rect(surf, border, rect, 4, border_radius=12)
-
-        txt = font_btn.render(b["text"], True, (0, 0, 0))
-        txt_rect = txt.get_rect(center=rect.center)
-        surf.blit(txt, txt_rect)
+    txt = btn.font.render(btn.text, True, (0,0,0))
+    txt_rect = txt.get_rect(center=rect.center)
+    surf.blit(txt, txt_rect)

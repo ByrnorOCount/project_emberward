@@ -78,11 +78,31 @@ def place_tower(grid, x, y, towers, tower_id="bolt"):
 
 def update_towers(towers, enemies, dt, projectiles):
     """Update towers; append spawned projectiles into projectiles list."""
-    for t in towers:
-        p = t.update(enemies, dt)
+    for tower in towers:
+        p = tower.update(enemies, dt)
         if p:
             projectiles.append(p)
 
 def tower_data():
     """Expose tower data externally."""
     return _TOWER_DATA
+
+class BoltTower(Tower):
+    def __init__(self, x, y):
+        super().__init__(x, y, damage=120, range_=3.0, fire_rate=1.0, name="Bolt", color=(220, 40, 40))
+
+
+class SwiftTower(Tower):
+    def __init__(self, x, y):
+        super().__init__(x, y, damage=6, range_=2.6, fire_rate=2.0, name="Swift", color=(40, 180, 40))
+
+
+class CannonTower(Tower):
+    def __init__(self, x, y):
+        super().__init__(x, y, damage=30, range_=5, fire_rate=0.6, name="Cannon", color=(40, 120, 220))
+
+    def update(self, enemies, dt):
+        proj = super().update(enemies, dt)
+        if proj:
+            proj.splash_radius = 1.5
+        return proj

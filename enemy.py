@@ -24,16 +24,24 @@ class Enemy:
         self.t = 0.0
 
     def update(self, dt):
-        """Move along the path according to speed."""
+        """Move along the path according to speed, smoothly interpolating."""
         if not self.path or len(self.path) < 2:
             return
-        p0, p1 = self.path[0], self.path[1]
+
+        p0 = self.path[0]
+        p1 = self.path[1]
+
         self.t += self.speed * dt
         if self.t >= 1.0:
-            # Snap to next cell
+            # Move to next cell
             self.pos = p1
             self.path.pop(0)
             self.t = 0.0
+        else:
+            # Smoothly interpolate between p0 and p1
+            self.pos = (p0[0] + (p1[0] - p0[0]) * self.t,
+                        p0[1] + (p1[1] - p0[1]) * self.t)
+
 
     def reached_goal(self):
         """True if this enemy has arrived at its goal."""
@@ -69,3 +77,15 @@ def update_enemies(enemies, dt, goal):
 
 def enemy_data():
     return _ENEMY_DATA
+
+class BasicEnemy(Enemy):
+    def __init__(self, start, goal):
+        super().__init__(start, goal, hp=100, speed=1.25, gold=6, color=(255, 200, 50), name="Basic")
+        
+class FastEnemy(Enemy):
+    def __init__(self, start, goal):
+        super().__init__(start, goal, hp=50, speed=3, gold=3, color=(255, 160, 40), name="Fast")
+
+class TankEnemy(Enemy):
+    def __init__(self, start, goal):
+        super().__init__(start, goal, hp=350, speed=0.85, gold=20, color=(160, 50, 200), name="Tank")
