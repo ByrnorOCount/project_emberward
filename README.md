@@ -1,6 +1,6 @@
-# Emberward Clone (that highlights A* search)
+# Emberward Clone (Pathfinding Algorithm Visualizer)
 
-A tower defense game with a twist, inspired by Emberward. This project emphasizes dynamic pathfinding by challenging the player to build a maze for enemies using Tetris-like pieces. Enemies use the A* search algorithm to navigate the maze in real-time, forcing you to think strategically about your defenses.
+A tower defense game with a twist, inspired by Emberward. This project emphasizes dynamic pathfinding by challenging the player to build a maze for enemies using Tetris-like pieces. You can switch between different pathfinding algorithms (A*, Dijkstra, Greedy BFS, DFS) in real-time to see how they affect the enemies' routes.
 
 ## Gameplay
 
@@ -18,6 +18,7 @@ The core gameplay loop combines maze-building and tower defense with roguelite p
 - **Pan Camera**: Hold `Right Mouse Button` and drag.
 - **Zoom Camera**: Use the `Mouse Wheel` or `+` / `-` keys.
 - **Return to Map**: Press `Escape` during a fight.
+- **Switch Pathfinding Algorithm**: Press `TAB` to cycle through A*, Dijkstra, etc.
 
 ### Placement
 
@@ -29,7 +30,11 @@ The core gameplay loop combines maze-building and tower defense with roguelite p
 
 ## Features
 
-- **Dynamic A\* Pathfinding**: Enemies constantly recalculate their path to your core as you place and remove obstacles.
+- **Dynamic Pathfinding**: Enemies constantly recalculate their path to your core as you build your maze. Switch between four different algorithms on the fly:
+  - **A***: An intelligent, efficient search that balances path length and distance to the goal.
+  - **Dijkstra**: Finds the absolute shortest path, but explores more nodes than A*.
+  - **Greedy Best-First**: A "shortsighted" algorithm that always moves to the node closest to the goal, which may not be the optimal path.
+  - **DFS**: A simple depth-first search that finds a path, but often a very inefficient one.
 - **Tetris-like Maze Building**: Use a deck of familiar puzzle pieces to construct your defenses. You can't block the path completely!
 - **Multiple Tower Types**: Deploy different towers, each with its own cost, damage, range, and fire rate.
 - **Wave-Based Survival**: Face increasingly challenging waves of enemies with varying stats.

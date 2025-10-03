@@ -221,6 +221,7 @@ def draw_sidebar(surf, level, player, wave_index, deck_count, is_placing_tower, 
         surf.blit(f.render("Q/E: Rotate Piece", True, (2,255,255)), (x, y)); y += 24
         surf.blit(f.render("Tab: Change Algorithm", True, (2,255,255)), (x, y)); y += 24
         surf.blit(f.render("Esc: Quit and Return to Map", True, (2,255,255)), (x, y)); y += 24
+        surf.blit(f.render("F1: (Dev) Instantly Win Level", True, (2,255,255)), (x, y)); y += 24
 
     # Algorithm selection button
     algo_rect = pygame.Rect(x, h - 140, sidebar_w - 2*padding, 30)
