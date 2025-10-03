@@ -1,5 +1,4 @@
 import json, os, math
-from grid import OBSTACLE, TOWER
 
 # Load tower data from JSON
 with open(os.path.join("data", "towers.json")) as f:

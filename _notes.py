@@ -1,19 +1,25 @@
 # Remember to update whenever a new function/file is added
 
 # TODO:
-# add a third level
-# have at least 5 waves to each level
+# add search algo selection on sidebar - Done
+# MapScene.update() actually does something - Done
+# victory screen upon clearing all waves in the level, prompts to press any key to move back to map - Done
+# show levels not yet accessible as gray/locked - Done
+# dev hotkey to win level instantly - Done
+# VVV Future Ideas VVV
+# add a third level?
+# have at least 5 waves to each level?
 # upgrade towers?
 # more towers and enemies?
-# add search algo selection on sidebar
-# MapScene.update()
-# incoming wave
-# victory screen, press any key to move back to map
-# show levels not yet unlocked as gray/locked
-# sound effects, music, assets
+# sound effects, music, assets?
+# display incoming wave?
 
 # main.py
+def main():
+    """Main entry point with error handling."""
 class Game:
+    def __init__(self):
+        """Initializes Pygame, screen, clock, and the first scene."""
     def change_scene(self, new_scene):
         """Replace current scene with a new one."""
     def run(self):
@@ -21,8 +27,11 @@ class Game:
 
 # scenes/scene_menu.py
 class Button:
-    pass
+    def __init__(self, text, action, center, size=(300, 70)):
+        """Initializes a menu button."""
 class MenuScene:
+    def __init__(self, game):
+        """Initializes the main menu scene and its buttons."""
     def handle_input(self, event):
         """Handles input events from user."""
     def update(self, dt):
@@ -32,6 +41,8 @@ class MenuScene:
 
 # scenes/scene_map.py
 class MapScene:
+    def __init__(self, game):
+        """Initializes the map scene, loading level nodes."""
     def handle_input(self, event):
         """Handles input events from user."""
     def update(self, dt):
@@ -41,6 +52,8 @@ class MapScene:
 
 # scenes/scene_fight.py
 class FightScene:
+    def __init__(self, game, level):
+        """Initializes the fight scene for a given level."""
     # Core Logic
     def handle_input(self, events):
         """Handles all user input for the fight scene."""
@@ -49,23 +62,23 @@ class FightScene:
     def render(self, screen):
         """Renders the entire fight scene."""
     # Piece & Tower Placement
-    def select_new_piece(self):
+    def _select_new_piece(self):
         """Selects the next piece from the deck."""
-    def place_piece(self, gx, gy):
+    def _place_piece(self, gx, gy):
         """Attempts to place the current piece at a grid location."""
-    def place_tower(self, gx, gy):
+    def _place_tower(self, gx, gy):
         """Attempts to place the selected tower at a grid location."""
     def _handle_sidebar_click(self, mx, my):
         """Handles clicks on the sidebar UI. Returns True if a sidebar element was
         clicked, False otherwise."""
-    def select_cell_in_grid(self, mx, my):
+    def _select_cell_in_grid(self, mx, my):
         """Handles a click on the main grid for placement or selection."""
-    def select_existing_tower(self, gx, gy):
+    def _select_existing_tower(self, gx, gy):
         """Selects a tower at a grid location to show its stats."""
     # Camera & Coordinates
-    def screen_to_grid(self, sx, sy):
+    def _screen_to_grid(self, sx, sy):
         """Maps screen pixel to grid coordinate, taking camera into account."""
-    def grid_to_screen(self, gx, gy):
+    def _grid_to_screen(self, gx, gy):
         """Maps grid coordinate to screen pixel center, taking camera into account."""
     def start_panning(self, mx, my):
         """Begins a camera pan operation."""
@@ -76,20 +89,32 @@ class FightScene:
     def zoomimg(self, e):
         """Zooms the camera in or out."""
     # Misc Helpers
+    def _start_wave_action(self):
+        """Starts the next wave if conditions are met."""
     def spawn_wave(self):
         """Initializes the spawning sequence for the current wave."""
     def show_tower_range(self, e):
         """Sets the tower to be hovered for displaying its range."""
+    def _switch_algo(self):
+        """Cycles to the next pathfinding algorithm."""
+    def _win_level(self):
+        """Developer hotkey action to instantly win the level."""
+    def _return_to_map(self):
+        """Saves HP and returns to the map scene."""
 class Camera:
     pass
 class Phase(Enum): # type: ignore
-    pass
+    """Enum for different phases of the fight scene (Prepare, Running, etc.)."""
 
 # level.py
 class Level:
+    def __init__(self, name, waves, gold=50, total_wave=0):
+        """Initializes a level with its data."""
     """Contains data for a single level, including its waves."""
 class EnemyGroup:
     """Defines a group of enemies within a wave."""
+    def __init__(self, name, count, spawn_interval=0.5):
+        """Initializes an enemy group for a wave."""
 
 # run_state.py
 class Player:
@@ -114,8 +139,6 @@ def cell_center(x, y, cell_size):
     """Returns pixel center coordinates of a grid cell for drawing."""
 def get_neighbors4(x, y):
     """Returns 4-neighbor coordinates for A* pathfinding."""
-def load_map_layout(map_id): # currently empty
-    """Loads fixed obstacles layout for given map id as non-placeable cells."""
 
 # piece.py
 def get_piece_shapes():
@@ -130,13 +153,23 @@ def get_absolute_cells(gx, gy, cells):
     """Converts relative piece coords into absolute grid coords for placement."""
 
 # pathfinding.py
-def heuristic(a, b):
-    """Manhattan distance for A*."""
 def astar(grid, start, goal):
     """Computes shortest path from start to goal using A* on grid."""
+def dijkstra(grid, start, goal):
+    """Computes the shortest path from start to goal using Dijkstra's algorithm."""
+def greedy_bfs(grid, start, goal):
+    """Greedy Best-First Search. Chooses path based only on closeness to goal."""
+def dfs(grid, start, goal):
+    """Depth-First Search. Finds a path, but it will be long and inefficient."""
+def heuristic(a, b):
+    """Manhattan distance for A*."""
+def find_path(grid, start, goal, algorithm="astar"):
+    """General function to find a path using a specified algorithm."""
 
 # enemy.py
 class Enemy:
+    def __init__(self, start, goal, etype="basic"):
+        """Initializes an enemy instance with its stats and position."""
     def set_path(self, path):
         """Assign a new path and reset progress."""
     def update(self, dt):
@@ -149,13 +182,15 @@ def create_enemy(etype, start, goal):
     """Factory function to create an enemy instance from its type ID."""
 def update_enemies(enemies, dt, goal):
     """Update all enemies; return list of enemies that reached the goal."""
-def recompute_enemy_paths(enemies, grid, goal):
+def recompute_enemy_paths(enemies, grid, goal, algorithm="astar"):
     """Recompute paths for all enemies, typically after the grid changes."""
 def enemy_data():
     """Exposes raw enemy data from JSON."""
 
 # tower.py
 class Tower:
+    def __init__(self, x, y, tower_id="bolt"):
+        """Initializes a tower instance."""
     def in_range(self, enemy):
         """Distance uses grid units (cells). Enemy.pos is (x,y) in grid coords."""
     def get_stats(self):
@@ -167,7 +202,7 @@ class CannonTower(Tower):
     pass
 def create_tower(tower_id, x, y):
     """Factory function to create a tower instance from its type ID."""
-def can_place_tower(grid, x, y):
+def can_place_tower(grid, x, y, towers):
     """Checks if a tower can be placed at a given grid coordinate."""
 def update_towers(towers, enemies, dt, projectiles):
     """Update towers; append spawned projectiles into projectiles list."""
@@ -176,6 +211,8 @@ def tower_data():
 
 # projectile.py
 class Projectile:
+    def __init__(self, x, y, target, damage, speed=8.0, lifetime=5.0, origin_tower=None):
+        """Initializes a projectile."""
     def update(self, dt):
         """Moves the projectile towards its target and handles collision."""
 
@@ -190,7 +227,7 @@ def draw_grid_background(surf, cell_size=64):
     """Draws a subtle gray grid background."""
 
 # render/render_map.py
-def draw_map(surf, level):
+def draw_map(surf, level_nodes, hovered_node_id=None):
     """Draws the level selection map screen."""
 
 # render/render_fight.py
@@ -208,7 +245,7 @@ def draw_tower_range(surf, tower, cell_size, camera, color):
     """Draws a circle indicating a tower's attack range."""
 def draw_projectiles(surf, projectiles, cell_size, camera):
     """Draws all active projectiles."""
-def draw_sidebar(surf, level, player, placement_mode, selected_tower=None):
+def draw_sidebar(surf, level, player, wave_index, deck_count, is_placing_tower, selected_tower=None, algorithm="astar"):
     """Draws the UI sidebar with game state info, tower selection, etc."""
 def sidebar_click_test(surf, mx, my):
     """Returns the name of the sidebar element that was clicked."""

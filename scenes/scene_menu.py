@@ -37,9 +37,10 @@ class MenuScene:
                         self.game.run_state = create_run_state()
                         self.game.change_scene(MapScene(self.game))
                     elif action == "quit":
-                        pygame.quit(); sys.exit()
+                        pygame.quit()
+                        sys.exit()
                     elif action == "options":
-                        print("Options clicked!")  # TODO: add options menu
+                        print("Options button pressed")
 
     def update(self, dt):
         pass # not sure

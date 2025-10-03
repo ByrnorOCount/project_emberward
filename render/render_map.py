@@ -2,7 +2,7 @@ import pygame
 from constants import *
 from .render_menu import draw_grid_background
 
-def draw_map(surf, level_nodes):
+def draw_map(surf, level_nodes, hovered_node_id=None):
     """Draws the level selection map screen."""
     surf.fill((30, 30, 30))
     w, h = surf.get_size()
@@ -20,9 +20,16 @@ def draw_map(surf, level_nodes):
 
     for level_node in level_nodes:
         cx, cy = level_node["pos"]
-        node_r = level_node["radius"]
-        pygame.draw.circle(surf, (100, 160, 240), (cx, cy), node_r)
-        pygame.draw.circle(surf, (220, 220, 220), (cx, cy), node_r, 4)
+        is_hovered = level_node["id"] == hovered_node_id
+        is_accessible = level_node.get("accessible", True)
+        radius = level_node["radius"] + 5 if is_hovered and is_accessible else level_node["radius"]
+
+        if is_accessible:
+            pygame.draw.circle(surf, (100, 160, 240), (cx, cy), radius)
+            pygame.draw.circle(surf, (220, 220, 220), (cx, cy), radius, 4)
+        else:
+            pygame.draw.circle(surf, (80, 80, 80), (cx, cy), radius)
+            pygame.draw.circle(surf, (120, 120, 120), (cx, cy), radius, 4)
         font = pygame.font.SysFont(DEFAULT_FONT_NAME, 22, bold=True)
         txt = font.render(level_node["name"], True, (255,255,255))
         txt_r = txt.get_rect(center=(cx, cy))

@@ -1,7 +1,7 @@
 import pygame, random, sys
 from enum import Enum
 from constants import *
-from grid import cell_center, create_grid, set_cells, OBSTACLE, TOWER, EMPTY, FIXED_OBSTACLE
+from grid import cell_center, create_grid, set_cells, OBSTACLE, EMPTY, FIXED_OBSTACLE
 from piece import get_piece_shapes, rotate_piece, can_place_piece, get_absolute_cells
 from pathfinding import find_path
 from enemy import update_enemies, create_enemy, recompute_enemy_paths
@@ -48,7 +48,7 @@ class FightScene:
         self.piece_keys = list(self.pieces.keys())
         self.deck = [random.choice(self.piece_keys) for _ in range(20)]
         self.current_piece_key = None
-        self.select_new_piece()
+        self._select_new_piece()
         self.rotation = 0        
         self.placement_mode = "neutral"  # "neutral", "piece", "tower"
 
@@ -82,6 +82,22 @@ class FightScene:
     # Core Logic 
     # ===================
     def handle_input(self, e):
+        # Input handling for overlay phases (Game Over, Victory)
+        if self.phase == Phase.GameOver:
+            if e.type == pygame.KEYDOWN or e.type == pygame.MOUSEBUTTONDOWN:
+                from scenes.scene_menu import MenuScene
+                self.game.change_scene(MenuScene(self.game))
+            return # Block other input
+        if self.phase == Phase.Victory:
+            if e.type == pygame.KEYDOWN or e.type == pygame.MOUSEBUTTONDOWN:
+                self._return_to_map()
+            return # Block other input
+        if self.phase == Phase.GrandVictory:
+            if e.type == pygame.KEYDOWN or e.type == pygame.MOUSEBUTTONDOWN:
+                from scenes.scene_menu import MenuScene
+                self.game.change_scene(MenuScene(self.game))
+            return # Block other input
+
         if e.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
@@ -108,10 +124,14 @@ class FightScene:
                 self.camera.zoom = min(2.5, self.camera.zoom + 0.1)
             elif e.key == pygame.K_MINUS:
                 self.camera.zoom = max(0.6, self.camera.zoom - 0.1)
+            elif e.key == pygame.K_TAB:
+                self._switch_algo()
+            elif e.key == pygame.K_SPACE:
+                self._start_wave_action()
             elif e.key == pygame.K_ESCAPE:
-                self.run_state.player.hp = self.player.hp  # Save HP
-                from scenes.scene_map import MapScene
-                self.game.change_scene(MapScene(self.game))
+                self._return_to_map()
+            elif e.key == pygame.K_F1: # Dev key to win level
+                self._win_level()
         elif e.type == pygame.MOUSEWHEEL:
             self.zoomimg(e)
         elif e.type == pygame.MOUSEBUTTONDOWN:
@@ -125,22 +145,16 @@ class FightScene:
             # Check for sidebar clicks first. If a click is not on the sidebar,
             # handle it as a grid click.
             if not self._handle_sidebar_click(mx, my):
-                self.select_cell_in_grid(mx, my)
+                self._select_cell_in_grid(mx, my)
 
         elif e.type == pygame.MOUSEBUTTONUP:
             if e.button == 3:
-                self.is_panning = False
+                self.stop_panning()
         elif e.type == pygame.MOUSEMOTION:
             if self.is_panning:
                 self.update_panning(e)
             else:
                 self.show_tower_range(e)
-        
-        # Handle game over input
-        if self.phase == Phase.GameOver:
-            if e.type == pygame.KEYDOWN or e.type == pygame.MOUSEBUTTONDOWN:
-                from scenes.scene_menu import MenuScene
-                self.game.change_scene(MenuScene(self.game))
 
     def update(self, dt):
         if self.player.hp <= 0 and self.phase != Phase.GameOver:
@@ -190,7 +204,14 @@ class FightScene:
                 for level_node in self.run_state.levels:
                     if level_node["id"] == self.run_state.current_level_id:
                         level_node["cleared"] = True
-                self.phase = Phase.Victory
+                
+                # Check if all levels are now cleared
+                all_cleared = all(level.get('cleared', False) for level in self.run_state.levels)
+                if all_cleared:
+                    self.phase = Phase.GrandVictory
+                else:
+                    self.phase = Phase.Victory
+
             else:
                 self.phase = Phase.Prepare
 
@@ -200,7 +221,7 @@ class FightScene:
         preview_path = find_path(self.grid, self.start, self.goal, self.pathfinding_algorithm)  # added pathfinding_algorithm
         preview_valid = True
         mx, my = pygame.mouse.get_pos()
-        mouse_gx, mouse_gy = self.screen_to_grid(mx, my)
+        mouse_gx, mouse_gy = self._screen_to_grid(mx, my)
         if mouse_gx is not None and self.placement_mode == "piece" and self.current_piece_key is not None:
             shape = self.pieces[self.current_piece_key]
             rotated = rotate_piece(shape, self.rotation)
@@ -281,16 +302,40 @@ class FightScene:
             hint_text = font_small.render("Press any key to return to menu", True, (200,200,200))
             screen.blit(go_text, (screen.get_width()//2 - go_text.get_width()//2, screen.get_height()//2 - go_text.get_height()//2 - 20))
             screen.blit(hint_text, (screen.get_width()//2 - hint_text.get_width()//2, screen.get_height()//2 + go_text.get_height()//2))
+        elif self.phase == Phase.Victory:
+            s = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
+            s.fill((0,0,0,180))
+            screen.blit(s, (0,0))
+            
+            font_large = pygame.font.SysFont(DEFAULT_FONT_NAME, 72, bold=True)
+            font_small = pygame.font.SysFont(DEFAULT_FONT_NAME, 24)
+            
+            vic_text = font_large.render("Victory!", True, (255,220,80))
+            hint_text = font_small.render("Press any key to return to the map", True, (200,200,200))
+            screen.blit(vic_text, (screen.get_width()//2 - vic_text.get_width()//2, screen.get_height()//2 - vic_text.get_height()//2 - 20))
+            screen.blit(hint_text, (screen.get_width()//2 - hint_text.get_width()//2, screen.get_height()//2 + vic_text.get_height()//2))
+        elif self.phase == Phase.GrandVictory:
+            s = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
+            s.fill((0,0,0,180))
+            screen.blit(s, (0,0))
+            
+            font_large = pygame.font.SysFont(DEFAULT_FONT_NAME, 72, bold=True)
+            font_small = pygame.font.SysFont(DEFAULT_FONT_NAME, 24)
+            
+            vic_text = font_large.render("You Won The Game!", True, (255,220,80))
+            hint_text = font_small.render("Press any key to return to the menu", True, (200,200,200))
+            screen.blit(vic_text, (screen.get_width()//2 - vic_text.get_width()//2, screen.get_height()//2 - vic_text.get_height()//2 - 20))
+            screen.blit(hint_text, (screen.get_width()//2 - hint_text.get_width()//2, screen.get_height()//2 + vic_text.get_height()//2))
         pygame.display.flip()
 
     # ===================
     # Piece & Tower Placement
     # ===================
-    def select_new_piece(self):
+    def _select_new_piece(self):
         """Selects the next piece from the deck."""
         self.current_piece_key = self.deck[0] if self.deck else None
 
-    def place_piece(self, gx, gy):
+    def _place_piece(self, gx, gy):
         """Attempts to place the current piece at a grid location."""
         # if not placing tower and there's a current piece -> try place piece
         shape = self.pieces[self.current_piece_key]
@@ -300,11 +345,11 @@ class FightScene:
             set_cells(self.grid, cells, self.current_piece_key)
             if self.deck:
                 self.deck.pop(0)
-            self.select_new_piece()
+            self._select_new_piece()
             self.deck_count = len(self.deck)
             recompute_enemy_paths(self.enemies, self.grid, self.goal, self.pathfinding_algorithm)
 
-    def place_tower(self, gx, gy):
+    def _place_tower(self, gx, gy):
         """Attempts to place the selected tower at a grid location."""
         if can_place_tower(self.grid, gx, gy, self.towers):
             tower = create_tower(self.selected_tower_id, gx, gy)
@@ -320,9 +365,7 @@ class FightScene:
         clicked_element = sidebar_click_test(self.game.screen, mx, my)
         # added algo button
         if clicked_element == "algo_button":
-            self.algo_index = (self.algo_index + 1) % len(self.algorithms)
-            self.pathfinding_algorithm = self.algorithms[self.algo_index]
-            recompute_enemy_paths(self.enemies, self.grid, self.goal, self.pathfinding_algorithm)
+            self._switch_algo()
             return True
         elif clicked_element == "sell_button" and self.clicked_tower: # sell before deselect
             refund = int(self.clicked_tower.cost * 0.5)
@@ -331,10 +374,7 @@ class FightScene:
             self.clicked_tower = None
             return True
         elif clicked_element == "start_wave":
-            if not self.wave_spawned and self.current_wave_index < len(self.level.waves):
-                self.spawn_wave()
-                self.wave_spawned = True
-                self.phase = Phase.Running
+            self._start_wave_action()
             return True
         elif clicked_element == "tower_list":
             clicked_type = tower_list_click_test(self.game.screen, mx, my)
@@ -347,36 +387,36 @@ class FightScene:
             return True
         return False
     
-    def select_cell_in_grid(self, mx, my):
+    def _select_cell_in_grid(self, mx, my):
         """Handles a click on the main grid for placement or selection."""
         if self.phase not in [Phase.Prepare, Phase.Running, Phase.Victory]:
             return
-        gx, gy = self.screen_to_grid(mx, my)
+        gx, gy = self._screen_to_grid(mx, my)
         outside_grid = gx is None or gy is None
         if outside_grid:
             return
         if self.placement_mode == "tower":
-            self.place_tower(gx, gy)
+            self._place_tower(gx, gy)
             recompute_enemy_paths(self.enemies, self.grid, self.goal)
         elif self.placement_mode == "piece" and self.current_piece_key:
-            self.place_piece(gx, gy)
+            self._place_piece(gx, gy)
             recompute_enemy_paths(self.enemies, self.grid, self.goal)
         else: # neutral mode
-            self.select_existing_tower(gx, gy)
+            self._select_existing_tower(gx, gy)
 
-    def select_existing_tower(self, gx, gy):
+    def _select_existing_tower(self, gx, gy):
         """Selects a tower at a grid location to show its stats."""
         self.clicked_tower = None
         for tower in self.towers:
             if tower.x == gx and tower.y == gy:
                 self.clicked_tower = tower
                 break
-        self.hover_tower = self.clicked_tower
+        self.hover_tower = self.clicked_tower # Also set hover to show range immediately
 
     # ===================
     # Camera & Coordinates
     # ===================
-    def screen_to_grid(self, sx, sy):
+    def _screen_to_grid(self, sx, sy):
         """Map screen pixel to grid coordinate, taking camera into account."""
         cs = int(self.camera.cell_size * self.camera.zoom)
         wx = sx - self.camera.offset_x
@@ -389,7 +429,7 @@ class FightScene:
             return gx, gy
         return (None, None)
 
-    def grid_to_screen(self, gx, gy):
+    def _grid_to_screen(self, gx, gy):
         """Maps grid coordinate to screen pixel center, taking camera into account."""
         cs = int(self.camera.cell_size * self.camera.zoom)
         sx = gx * cs + cs//2 + self.camera.offset_x
@@ -426,6 +466,13 @@ class FightScene:
     # ===================
     # Misc Helper
     # ===================
+    def _start_wave_action(self):
+        """Starts the next wave if conditions are met."""
+        if not self.wave_spawned and self.current_wave_index < len(self.level.waves):
+            self.spawn_wave()
+            self.wave_spawned = True
+            self.phase = Phase.Running
+
     def spawn_wave(self):
         """Initializes the spawning sequence for the current wave."""
         wave = self.level.waves[self.current_wave_index]
@@ -440,13 +487,39 @@ class FightScene:
     def show_tower_range(self, e):
         """Sets the tower to be hovered for displaying its range."""
         mx, my = e.pos
-        gx, gy = self.screen_to_grid(mx, my)
+        gx, gy = self._screen_to_grid(mx, my)
         self.hover_tower = None
         if gx is not None:
             for t in self.towers:
                 if t.x == gx and t.y == gy:
                     self.hover_tower = t
                     break
+
+    def _switch_algo(self):
+        """Cycles to the next pathfinding algorithm."""
+        self.algo_index = (self.algo_index + 1) % len(self.algorithms)
+        self.pathfinding_algorithm = self.algorithms[self.algo_index]
+        recompute_enemy_paths(self.enemies, self.grid, self.goal, self.pathfinding_algorithm)
+
+    def _win_level(self):
+        """Developer hotkey action to instantly win the level."""
+        print("DEV: Instantly winning level.")
+        for level_node in self.run_state.levels:
+            if level_node["id"] == self.run_state.current_level_id:
+                level_node["cleared"] = True
+        
+        # Check if all levels are now cleared to trigger the correct victory screen
+        all_cleared = all(level.get('cleared', False) for level in self.run_state.levels)
+        if all_cleared:
+            self.phase = Phase.GrandVictory
+        else:
+            self.phase = Phase.Victory
+
+    def _return_to_map(self):
+        """Saves HP and returns to the map scene."""
+        self.run_state.player.hp = self.player.hp
+        from scenes.scene_map import MapScene
+        self.game.change_scene(MapScene(self.game))
 
 class Camera:
     def __init__(self, offset_x, offset_y, zoom, cell_size):
@@ -460,3 +533,4 @@ class Phase(Enum):
     Running = 2
     Victory = 3
     GameOver = 4
+    GrandVictory = 5

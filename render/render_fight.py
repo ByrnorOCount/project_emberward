@@ -2,7 +2,7 @@ import pygame
 from constants import *
 from tower import tower_data
 from piece import PIECE_COLORS
-from grid import EMPTY, OBSTACLE, TOWER, FIXED_OBSTACLE, cell_center
+from grid import EMPTY, FIXED_OBSTACLE, cell_center
 
 # -----------------------------
 # Grid & map drawing
@@ -152,28 +152,6 @@ _sidebar_rects = {
     "algo_button": None,
 }
 
-# render/render_fight.py
-
-import pygame
-from constants import *
-from tower import tower_data
-from piece import PIECE_COLORS
-from grid import EMPTY, OBSTACLE, TOWER, FIXED_OBSTACLE, cell_center
-
-# ... (all other functions in the file remain the same) ...
-
-# -----------------------------
-# Sidebar UI
-# -----------------------------
-_sidebar_rects = {
-    "start_wave": None,
-    "tower_list": [],
-    "tower_panel": None,
-    "sell_button": None,
-    "algo_button": None, # Add this for the new button
-}
-
-# added algo button
 def draw_sidebar(surf, level, player, wave_index, deck_count, is_placing_tower, selected_tower=None, algorithm="astar"):
     w, h = surf.get_size()
     sidebar_w = 260
@@ -237,11 +215,14 @@ def draw_sidebar(surf, level, player, wave_index, deck_count, is_placing_tower, 
         _sidebar_rects["sell_button"] = sell_rect.copy()
     else:
         _sidebar_rects["sell_button"] = None
+        # Hotkey info
         surf.blit(f.render("P: Toggle Piece Mode", True, (2,255,255)), (x, y)); y += 24
         surf.blit(f.render("T: Toggle Tower Mode", True, (2,255,255)), (x, y)); y += 24
         surf.blit(f.render("Q/E: Rotate Piece", True, (2,255,255)), (x, y)); y += 24
+        surf.blit(f.render("Tab: Change Algorithm", True, (2,255,255)), (x, y)); y += 24
+        surf.blit(f.render("Esc: Quit and Return to Map", True, (2,255,255)), (x, y)); y += 24
 
-    # NEW: Algorithm selection button
+    # Algorithm selection button
     algo_rect = pygame.Rect(x, h - 140, sidebar_w - 2*padding, 30)
     pygame.draw.rect(surf, (100, 100, 180), algo_rect, border_radius=6)
     algo_text = f.render(f"Algo: {algorithm.upper()}", True, (255, 255, 255)) # This now works
@@ -262,26 +243,7 @@ def sidebar_click_test(surf, mx, my):
     """Returns the name of the sidebar element that was clicked."""
     if _sidebar_rects["sell_button"] and _sidebar_rects["sell_button"].collidepoint(mx, my):
         return "sell_button"
-    if _sidebar_rects.get("algo_button") and _sidebar_rects["algo_button"].collidepoint(mx, my): # MODIFIED
-        return "algo_button"
-    if _sidebar_rects["start_wave"] and _sidebar_rects["start_wave"].collidepoint(mx, my):
-        return "start_wave"
-    if _sidebar_rects["tower_panel"] and _sidebar_rects["tower_panel"].collidepoint(mx, my):
-        return "sidebar_tower_panel"
-    for idx, rect in _sidebar_rects["tower_list"]:
-        if rect.collidepoint(mx, my):
-            return "tower_list"
-    return None
-
-# ... (rest of the file is the same)
-# -----------------------------
-# Click detection helpers
-# -----------------------------
-def sidebar_click_test(surf, mx, my):
-    """Returns the name of the sidebar element that was clicked."""
-    if _sidebar_rects["sell_button"] and _sidebar_rects["sell_button"].collidepoint(mx, my):
-        return "sell_button"
-    if _sidebar_rects.get("algo_button") and _sidebar_rects["algo_button"].collidepoint(mx, my):
+    if _sidebar_rects["algo_button"] and _sidebar_rects["algo_button"].collidepoint(mx, my):
         return "algo_button"
     if _sidebar_rects["start_wave"] and _sidebar_rects["start_wave"].collidepoint(mx, my):
         return "start_wave"

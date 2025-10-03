@@ -1,4 +1,4 @@
-EMPTY, OBSTACLE, TOWER, FIXED_OBSTACLE = 0, 1, 2, 4
+EMPTY, OBSTACLE, FIXED_OBSTACLE = 0, 1, 2
 
 def create_grid(w, h):
     """Returns a 2D list initialized with EMPTY cells."""
@@ -25,6 +25,3 @@ def cell_center(x, y, cell_size):
 def get_neighbors4(x, y):
     """Returns 4-neighbor coordinates for A* pathfinding."""
     return [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
-
-def load_map_layout(map_id):
-    """Loads fixed obstacles layout for given map id as non-placeable cells."""

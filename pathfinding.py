@@ -4,7 +4,7 @@
 from heapq import heappush, heappop
 from grid import is_walkable, get_neighbors4
 
-# A star
+# A*
 def astar(grid, start, goal):
     """Computes shortest path from start to goal using A* on grid."""
     if not is_walkable(grid, *goal):
@@ -35,7 +35,6 @@ def astar(grid, start, goal):
                 heappush(openq, (f_score, neighbor))
                 came_from[neighbor] = current
     return None
-
 
 # Dijkstra
 def dijkstra(grid, start, goal):
@@ -117,11 +116,9 @@ def dfs(grid, start, goal):
                 stack.append((neighbor, new_path))
     return None
 
-
 def heuristic(a, b):
     """Manhattan distance heuristic for A*."""
     return abs(a[0] - b[0]) + abs(a[1] - b[1])
-
 
 def find_path(grid, start, goal, algorithm="astar"):
     """General function to find a path using a specified algorithm."""
