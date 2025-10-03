@@ -3,7 +3,7 @@ from enum import Enum
 from constants import *
 from grid import cell_center, create_grid, set_cells, OBSTACLE, TOWER, EMPTY, FIXED_OBSTACLE
 from piece import get_piece_shapes, rotate_piece, can_place_piece, get_absolute_cells
-from astar import astar
+from pathfinding import find_path
 from enemy import update_enemies, create_enemy, recompute_enemy_paths
 from tower import can_place_tower, update_towers, create_tower
 from render.render_fight import draw_zoomed_map, draw_tower_preview, draw_piece_preview, tower_list_click_test, sidebar_click_test, draw_projectiles, draw_sidebar, draw_tower_range
@@ -17,6 +17,11 @@ class FightScene:
         self.grid = create_grid(22, 20)
         self.gw = len(self.grid[0])
         self.gh = len(self.grid)
+
+        # Pathfinding algorithm
+        self.algorithms = ["astar", "dijkstra", "greedy_bfs", "dfs"]
+        self.algo_index = 0
+        self.pathfinding_algorithm = self.algorithms[self.algo_index]
 
         # Set spawn (top-left) and goal (center) points
         self.start = (0, 0)
@@ -148,7 +153,7 @@ class FightScene:
             enemy_type, spawn_time = info
             if self.time_elapsed >= spawn_time:
                 e = create_enemy(enemy_type, self.start, self.goal)
-                e.set_path(astar(self.grid, e.pos, self.goal))
+                e.set_path(find_path(self.grid, e.pos, self.goal))
                 self.enemies.append(e)
                 self.spawn_queue.remove(info)
         # update enemies movement
@@ -192,7 +197,7 @@ class FightScene:
     def render(self, screen):
         screen.fill((18, 18, 18))
         # Step 1: compute preview path/validity
-        preview_path = astar(self.grid, self.start, self.goal)  # default: current path
+        preview_path = find_path(self.grid, self.start, self.goal, self.pathfinding_algorithm)  # added pathfinding_algorithm
         preview_valid = True
         mx, my = pygame.mouse.get_pos()
         mouse_gx, mouse_gy = self.screen_to_grid(mx, my)
@@ -205,7 +210,7 @@ class FightScene:
                 test_grid = deepcopy(self.grid)
                 cells = get_absolute_cells(mouse_gx, mouse_gy, rotated)
                 set_cells(test_grid, cells, OBSTACLE)
-                new_path = astar(test_grid, self.start, self.goal)
+                new_path = find_path(test_grid, self.start, self.goal)
                 if new_path:
                     preview_path = new_path
                     preview_valid = True
@@ -261,7 +266,8 @@ class FightScene:
         # Step 7: sidebar
         self.deck_count = len(self.deck)
         draw_sidebar(screen, self.level, self.player, self.wave_index, self.deck_count,
-                     self.placement_mode == "tower", selected_tower=self.clicked_tower)
+                     self.placement_mode == "tower", selected_tower=self.clicked_tower,
+                     algorithm=self.pathfinding_algorithm)
         # Step 8: flip
         if self.phase == Phase.GameOver:
             s = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
@@ -296,7 +302,7 @@ class FightScene:
                 self.deck.pop(0)
             self.select_new_piece()
             self.deck_count = len(self.deck)
-            recompute_enemy_paths(self.enemies, self.grid, self.goal)
+            recompute_enemy_paths(self.enemies, self.grid, self.goal, self.pathfinding_algorithm)
 
     def place_tower(self, gx, gy):
         """Attempts to place the selected tower at a grid location."""
@@ -306,12 +312,19 @@ class FightScene:
                 return # Not enough gold
             self.player.gold -= tower.cost
             self.towers.append(tower)
+            recompute_enemy_paths(self.enemies, self.grid, self.goal, self.pathfinding_algorithm)
 
     def _handle_sidebar_click(self, mx, my):
         """Handles clicks on the sidebar UI. Returns True if a sidebar element was
         clicked, False otherwise."""
         clicked_element = sidebar_click_test(self.game.screen, mx, my)
-        if clicked_element == "sell_button" and self.clicked_tower: # sell before deselect
+        # added algo button
+        if clicked_element == "algo_button":
+            self.algo_index = (self.algo_index + 1) % len(self.algorithms)
+            self.pathfinding_algorithm = self.algorithms[self.algo_index]
+            recompute_enemy_paths(self.enemies, self.grid, self.goal, self.pathfinding_algorithm)
+            return True
+        elif clicked_element == "sell_button" and self.clicked_tower: # sell before deselect
             refund = int(self.clicked_tower.cost * 0.5)
             self.player.gold += refund
             self.towers.remove(self.clicked_tower)

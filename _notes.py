@@ -129,7 +129,7 @@ def is_path_blocked(grid, cells, start, goal):
 def get_absolute_cells(gx, gy, cells):
     """Converts relative piece coords into absolute grid coords for placement."""
 
-# astar.py
+# pathfinding.py
 def heuristic(a, b):
     """Manhattan distance for A*."""
 def astar(grid, start, goal):

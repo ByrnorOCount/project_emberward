@@ -1,5 +1,5 @@
 import json, os
-from astar import astar
+from pathfinding import find_path
 
 # Load enemy archetypes
 with open(os.path.join("data", "enemies.json")) as f:
@@ -72,11 +72,12 @@ def update_enemies(enemies, dt, goal):
             reached.append(e)
     return reached
 
-def recompute_enemy_paths(enemies, grid, goal):
+def recompute_enemy_paths(enemies, grid, goal, algorithm="astar"):
     """Recompute paths for all enemies."""
     for e in enemies:
         start_node = (round(e.pos[0]), round(e.pos[1]))
-        e.set_path(astar(grid, start_node, goal))
+        # use find_path
+        e.set_path(find_path(grid, start_node, goal, algorithm))
 
 def enemy_data():
     """Exposes raw enemy data from JSON."""

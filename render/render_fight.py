@@ -149,9 +149,32 @@ _sidebar_rects = {
     "tower_list": [],
     "tower_panel": None,
     "sell_button": None,
+    "algo_button": None,
 }
 
-def draw_sidebar(surf, level, player, wave_index, deck_count, is_placing_tower, selected_tower=None):
+# render/render_fight.py
+
+import pygame
+from constants import *
+from tower import tower_data
+from piece import PIECE_COLORS
+from grid import EMPTY, OBSTACLE, TOWER, FIXED_OBSTACLE, cell_center
+
+# ... (all other functions in the file remain the same) ...
+
+# -----------------------------
+# Sidebar UI
+# -----------------------------
+_sidebar_rects = {
+    "start_wave": None,
+    "tower_list": [],
+    "tower_panel": None,
+    "sell_button": None,
+    "algo_button": None, # Add this for the new button
+}
+
+# added algo button
+def draw_sidebar(surf, level, player, wave_index, deck_count, is_placing_tower, selected_tower=None, algorithm="astar"):
     w, h = surf.get_size()
     sidebar_w = 260
     rect = pygame.Rect(w - sidebar_w, 0, sidebar_w, h)
@@ -167,7 +190,7 @@ def draw_sidebar(surf, level, player, wave_index, deck_count, is_placing_tower, 
     wave_i = wave_index
     wave_t = len(level.waves)
     surf.blit(f.render(f"HP: {player.hp}", True, (255,255,255)), (x, y)); y += 30
-    surf.blit(f.render(f"Gold: {gold}", True, (255,255,255)), (x, y)); y += 30
+    surf.blit(f.render(f"Gold: {gold}", True, (255,220,100)), (x, y)); y += 30
     surf.blit(f.render(f"Wave: {wave_i}/{wave_t}", True, (255,255,255)), (x, y)); y += 40
 
     # Deck
@@ -183,10 +206,10 @@ def draw_sidebar(surf, level, player, wave_index, deck_count, is_placing_tower, 
         stats = all_tower_data[tid]
         box = pygame.Rect(x, y, 40, 40)
         pygame.draw.rect(surf, stats["color"], box)
-        
+
         name_txt = font_tower.render(stats["name"], True, (255,255,255))
         cost_txt = font_tower.render(f"Cost: {stats['cost']}", True, (255, 220, 100))
-        
+
         surf.blit(name_txt, (x + 50, y + 4))
         surf.blit(cost_txt, (x + 50, y + 22))
 
@@ -205,7 +228,7 @@ def draw_sidebar(surf, level, player, wave_index, deck_count, is_placing_tower, 
         for k, v in stats.items():
             surf.blit(pygame.font.SysFont(DEFAULT_FONT_NAME, 16).render(f"{k}: {v}", True, (255,255,255)), (x+6, fy))
             fy += 20
-        
+
         refund = int(selected_tower.cost * 0.5)
         sell_rect = pygame.Rect(panel_rect.right-100, panel_rect.bottom-36, 80, 28)
         pygame.draw.rect(surf, (200,80,80), sell_rect, border_radius=6)
@@ -218,13 +241,20 @@ def draw_sidebar(surf, level, player, wave_index, deck_count, is_placing_tower, 
         surf.blit(f.render("T: Toggle Tower Mode", True, (2,255,255)), (x, y)); y += 24
         surf.blit(f.render("Q/E: Rotate Piece", True, (2,255,255)), (x, y)); y += 24
 
+    # NEW: Algorithm selection button
+    algo_rect = pygame.Rect(x, h - 140, sidebar_w - 2*padding, 30)
+    pygame.draw.rect(surf, (100, 100, 180), algo_rect, border_radius=6)
+    algo_text = f.render(f"Algo: {algorithm.upper()}", True, (255, 255, 255)) # This now works
+    surf.blit(algo_text, (algo_rect.centerx - algo_text.get_width()//2, algo_rect.centery - algo_text.get_height()//2))
+    _sidebar_rects["algo_button"] = algo_rect.copy()
+
     # Start wave button
     btn_rect = pygame.Rect(x, h - 80, sidebar_w - 2*padding, 48)
     pygame.draw.rect(surf, (100,180,100), btn_rect, border_radius=8)
     txt = pygame.font.SysFont(DEFAULT_FONT_NAME, 20, bold=True).render("Start Wave", True, (0,0,0))
     surf.blit(txt, (btn_rect.centerx - txt.get_width()//2, btn_rect.centery - txt.get_height()//2))
     _sidebar_rects["start_wave"] = btn_rect.copy()
-    
+
 # -----------------------------
 # Click detection helpers
 # -----------------------------
@@ -232,6 +262,27 @@ def sidebar_click_test(surf, mx, my):
     """Returns the name of the sidebar element that was clicked."""
     if _sidebar_rects["sell_button"] and _sidebar_rects["sell_button"].collidepoint(mx, my):
         return "sell_button"
+    if _sidebar_rects.get("algo_button") and _sidebar_rects["algo_button"].collidepoint(mx, my): # MODIFIED
+        return "algo_button"
+    if _sidebar_rects["start_wave"] and _sidebar_rects["start_wave"].collidepoint(mx, my):
+        return "start_wave"
+    if _sidebar_rects["tower_panel"] and _sidebar_rects["tower_panel"].collidepoint(mx, my):
+        return "sidebar_tower_panel"
+    for idx, rect in _sidebar_rects["tower_list"]:
+        if rect.collidepoint(mx, my):
+            return "tower_list"
+    return None
+
+# ... (rest of the file is the same)
+# -----------------------------
+# Click detection helpers
+# -----------------------------
+def sidebar_click_test(surf, mx, my):
+    """Returns the name of the sidebar element that was clicked."""
+    if _sidebar_rects["sell_button"] and _sidebar_rects["sell_button"].collidepoint(mx, my):
+        return "sell_button"
+    if _sidebar_rects.get("algo_button") and _sidebar_rects["algo_button"].collidepoint(mx, my):
+        return "algo_button"
     if _sidebar_rects["start_wave"] and _sidebar_rects["start_wave"].collidepoint(mx, my):
         return "start_wave"
     if _sidebar_rects["tower_panel"] and _sidebar_rects["tower_panel"].collidepoint(mx, my):
