@@ -32,7 +32,7 @@ def rotate_piece(cells, rotation):
         out = [(x - minx, y - miny) for x, y in out]
     return out
 
-def can_place_piece(grid, gx, gy, cells, start, goal):
+def can_place_piece(grid, gx, gy, cells, start, goal, algorithm="astar"):
     """Checks if piece fits legally at grid position (inside bounds, no collision)."""
     h = len(grid); w = len(grid[0])
     absolute_cells = []
@@ -42,11 +42,11 @@ def can_place_piece(grid, gx, gy, cells, start, goal):
             return False
         absolute_cells.append((ax, ay))
     
-    if is_path_blocked(grid, absolute_cells, start, goal):
+    if is_path_blocked(grid, absolute_cells, start, goal, algorithm="astar"):
         return False
     return True
 
-def is_path_blocked(grid, cells, start, goal):
+def is_path_blocked(grid, cells, start, goal, algorithm="astar"):
     """Check if placing cells on grid would block path from start to goal."""
     temp_grid = [row[:] for row in grid]
     for x, y in cells:
@@ -54,7 +54,7 @@ def is_path_blocked(grid, cells, start, goal):
     
     # A* returns a path of length > 1 if a path is found.
     # It returns [start] (length 1) or None if no path is found.
-    path = find_path(temp_grid, start, goal)
+    path = find_path(temp_grid, start, goal, algorithm)
     return not path or len(path) <= 1
 
 def get_absolute_cells(gx, gy, cells):

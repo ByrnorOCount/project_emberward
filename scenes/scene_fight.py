@@ -204,7 +204,7 @@ class FightScene:
         if mouse_gx is not None and self.placement_mode == "piece" and self.current_piece_key is not None:
             shape = self.pieces[self.current_piece_key]
             rotated = rotate_piece(shape, self.rotation)
-            valid = can_place_piece(self.grid, mouse_gx, mouse_gy, rotated, self.start, self.goal)
+            valid = can_place_piece(self.grid, mouse_gx, mouse_gy, rotated, self.start, self.goal, self.pathfinding_algorithm)
             if valid:
                 from copy import deepcopy
                 test_grid = deepcopy(self.grid)
@@ -246,7 +246,7 @@ class FightScene:
             elif self.placement_mode == "piece" and self.current_piece_key is not None:
                 shape = self.pieces[self.current_piece_key]
                 rotated = rotate_piece(shape, self.rotation)
-                valid = can_place_piece(self.grid, mouse_gx, mouse_gy, rotated, self.start, self.goal)
+                valid = can_place_piece(self.grid, mouse_gx, mouse_gy, rotated, self.start, self.goal, self.pathfinding_algorithm)
                 draw_piece_preview(screen, mouse_gx, mouse_gy, rotated,
                                    cell_size=self.camera.cell_size,
                                    valid=valid,
@@ -295,7 +295,7 @@ class FightScene:
         # if not placing tower and there's a current piece -> try place piece
         shape = self.pieces[self.current_piece_key]
         rotated = rotate_piece(shape, self.rotation)
-        if can_place_piece(self.grid, gx, gy, rotated, self.start, self.goal):
+        if can_place_piece(self.grid, gx, gy, rotated, self.start, self.goal, algorithm=self.pathfinding_algorithm):
             cells = get_absolute_cells(gx, gy, rotated)
             set_cells(self.grid, cells, self.current_piece_key)
             if self.deck:
