@@ -210,7 +210,7 @@ class FightScene:
                 test_grid = deepcopy(self.grid)
                 cells = get_absolute_cells(mouse_gx, mouse_gy, rotated)
                 set_cells(test_grid, cells, OBSTACLE)
-                new_path = find_path(test_grid, self.start, self.goal)
+                new_path = find_path(test_grid, self.start, self.goal, self.pathfinding_algorithm)
                 if new_path:
                     preview_path = new_path
                     preview_valid = True
