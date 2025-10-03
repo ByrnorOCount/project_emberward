@@ -153,7 +153,7 @@ class FightScene:
             enemy_type, spawn_time = info
             if self.time_elapsed >= spawn_time:
                 e = create_enemy(enemy_type, self.start, self.goal)
-                e.set_path(find_path(self.grid, e.pos, self.goal))
+                e.set_path(find_path(self.grid, e.pos, self.goal, self.pathfinding_algorithm))
                 self.enemies.append(e)
                 self.spawn_queue.remove(info)
         # update enemies movement
