@@ -3,6 +3,7 @@ from constants import *
 from render.render_menu import draw_menu, draw_button
 from .scene_map import MapScene
 from run_state import create_run_state
+from sound_manager import play_music, play_sound
 
 class Button:
     def __init__(self, text, action, center, size=(300, 70)):
@@ -27,6 +28,7 @@ class MenuScene:
         for i, btn_data in enumerate(btn_datas):
             center = (w // 2, start_y + i * spacing)
             self.btns.append(Button(btn_data["text"], btn_data["action"], center))
+        play_music("menu_bg.mp3")
 
     def handle_input(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
