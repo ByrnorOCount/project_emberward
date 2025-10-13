@@ -3,7 +3,7 @@ from constants import *
 from tower import tower_data
 from piece import PIECE_COLORS
 from grid import EMPTY, FIXED_OBSTACLE, cell_center
-from assets import get_assets, get_random_obstacle_image
+from assets import get_assets
 
 # -----------------------------
 # Grid & map drawing
@@ -13,31 +13,18 @@ def cell_rect(x, y, cell_size):
     return (x * cell_size, y * cell_size, cell_size, cell_size)
 
 def draw_grid(surf, grid, cell_size, pieces):
+    """Draws the grid cells (empty, obstacle, tower) on the surface using given cell_size."""
     colors = {
-        0: (50, 50, 50),  # EMPTY
+        EMPTY: (50, 50, 50),
         FIXED_OBSTACLE: (80, 80, 80)
     }
-
-    obstacle_images = {}  # store one random texture per cell
-
     for y, row in enumerate(grid):
         for x, val in enumerate(row):
-            rect = pygame.Rect(x * cell_size, y * cell_size, cell_size, cell_size)
-
-            if val == FIXED_OBSTACLE:
-                # Assign each obstacle a random image (once)
-                if (x, y) not in obstacle_images:
-                    obstacle_images[(x, y)] = get_random_obstacle_image()
-                img = obstacle_images[(x, y)]
-                img = pygame.transform.scale(img, (cell_size, cell_size))
-                surf.blit(img, rect)
+            if isinstance(val, str): # It's a piece key
+                pygame.draw.rect(surf, PIECE_COLORS.get(val, (100,100,200)), cell_rect(x, y, cell_size))
             else:
-                color = colors.get(val, (60, 60, 60))
-                pygame.draw.rect(surf, color, rect)
-
-            # Draw grid border
-            pygame.draw.rect(surf, (80, 80, 80), rect, 1)
-
+                pygame.draw.rect(surf, colors.get(val, (60,60,60)), cell_rect(x, y, cell_size))
+            pygame.draw.rect(surf, (80, 80, 80), cell_rect(x, y, cell_size), 1)
 
 def draw_zoomed_map(surf, grid, camera, enemies=None, towers=None, projectiles=None, draw_path=None, is_path_valid=True):
     """Draw the fight grid, enemies, towers, projectiles at zoomed scale with camera offset."""
