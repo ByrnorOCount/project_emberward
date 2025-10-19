@@ -38,18 +38,18 @@ def load_assets():
             assets["enemies"][key] = load_image(os.path.join(enemies_dir, fname))
 
     # --- Towers ---
-    towers_dir = os.path.join(IMAGE_DIR, "towers")
-    for fname in os.listdir(towers_dir):
-        if fname.endswith(".png"):
-            key = os.path.splitext(fname)[0]
-            assets["towers"][key] = load_image(os.path.join(towers_dir, fname))
+    # towers_dir = os.path.join(IMAGE_DIR, "towers")
+    # for fname in os.listdir(towers_dir):
+    #     if fname.endswith(".png"):
+    #         key = os.path.splitext(fname)[0]
+    #         assets["towers"][key] = load_image(os.path.join(towers_dir, fname))
 
     # --- Projectiles ---
-    proj_dir = os.path.join(IMAGE_DIR, "projectiles")
-    for fname in os.listdir(proj_dir):
-        if fname.endswith(".png"):
-            key = os.path.splitext(fname)[0]
-            assets["projectiles"][key] = load_image(os.path.join(proj_dir, fname))
+    # proj_dir = os.path.join(IMAGE_DIR, "projectiles")
+    # for fname in os.listdir(proj_dir):
+    #     if fname.endswith(".png"):
+    #         key = os.path.splitext(fname)[0]
+    #         assets["projectiles"][key] = load_image(os.path.join(proj_dir, fname))
 
     # --- Obstacles ---
     obstacles_dir = os.path.join(IMAGE_DIR, "obstacles")

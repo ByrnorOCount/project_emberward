@@ -85,7 +85,7 @@ def recompute_enemy_paths(enemies, grid, goal, algorithm="astar"):
     for e in enemies:
         start_node = (round(e.pos[0]), round(e.pos[1]))
         # use find_path
-        path, _ = find_path(grid, start_node, goal, algorithm)
+        path, _, _ = find_path(grid, start_node, goal, algorithm)
         e.set_path(path)
 
 def enemy_data():

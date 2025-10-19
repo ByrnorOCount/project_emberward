@@ -26,7 +26,7 @@ def draw_grid(surf, grid, cell_size, pieces):
                 pygame.draw.rect(surf, colors.get(val, (60,60,60)), cell_rect(x, y, cell_size))
             pygame.draw.rect(surf, (80, 80, 80), cell_rect(x, y, cell_size), 1)
 
-def draw_zoomed_map(surf, grid, camera, enemies=None, towers=None, projectiles=None, draw_path=None, is_path_valid=True):
+def draw_zoomed_map(surf, grid, camera, enemies=None, towers=None, projectiles=None, draw_path=None, is_path_valid=True, visited_nodes=None):
     """Draw the fight grid, enemies, towers, projectiles at zoomed scale with camera offset."""
     cs = int(camera.cell_size * camera.zoom)
     gw, gh = len(grid[0]), len(grid)
@@ -44,6 +44,15 @@ def draw_zoomed_map(surf, grid, camera, enemies=None, towers=None, projectiles=N
 
     from piece import get_piece_shapes
     draw_grid(temp, grid, cs, get_piece_shapes())
+
+    # Visited nodes overlay
+    if visited_nodes:
+        color = (120, 120, 120, 100) # Light gray, semi-transparent
+        visited_surf = pygame.Surface((cs, cs), pygame.SRCALPHA)
+        visited_surf.fill(color)
+        for x, y in visited_nodes:
+            rx, ry, _, _ = cell_rect(x, y, cs)
+            temp.blit(visited_surf, (rx, ry), special_flags=pygame.BLEND_RGBA_ADD)
 
     # path
     if draw_path and len(draw_path) > 1:
@@ -180,19 +189,19 @@ def draw_sidebar(surf, level, player, wave_index, deck_count, is_placing_tower, 
 
     padding = 16
     x = rect.left + padding
-    y = padding
+    y = 8 # Reduced top padding for a tighter fit
     f = pygame.font.SysFont(DEFAULT_FONT_NAME, 20, bold=True)
 
     # Core / Gold / Wave
     gold = player.gold
     wave_i = wave_index
     wave_t = len(level.waves)
-    surf.blit(f.render(f"HP: {player.hp}", True, (255,255,255)), (x, y)); y += 30
-    surf.blit(f.render(f"Gold: {gold}", True, (255,220,100)), (x, y)); y += 30
-    surf.blit(f.render(f"Wave: {wave_i}/{wave_t}", True, (255,255,255)), (x, y)); y += 40
+    surf.blit(f.render(f"HP: {player.hp}", True, (255,255,255)), (x, y)); y += 24
+    surf.blit(f.render(f"Gold: {gold}", True, (255,220,100)), (x, y)); y += 24
+    surf.blit(f.render(f"Wave: {wave_i}/{wave_t}", True, (255,255,255)), (x, y)); y += 30
 
     # Deck
-    surf.blit(f.render(f"Deck left: {deck_count} pieces", True, (255,255,255)), (x, y)); y += 40
+    surf.blit(f.render(f"Deck left: {deck_count} pieces", True, (255,255,255)), (x, y)); y += 30
 
     # Towers list
     all_tower_data = tower_data()
@@ -214,10 +223,13 @@ def draw_sidebar(surf, level, player, wave_index, deck_count, is_placing_tower, 
         _sidebar_rects["tower_list"].append((i, box.copy()))
         y += 50
 
+    # Define a fixed-height area for the contextual panel (tower stats or hotkeys)
+    context_panel_y_start = y
+    context_panel_height = 170
+
     # Tower stats panel
     if selected_tower:
-        panel_h = 160
-        panel_rect = pygame.Rect(x, y, sidebar_w - 2*padding, panel_h)
+        panel_rect = pygame.Rect(x, y, sidebar_w - 2*padding, 160)
         pygame.draw.rect(surf, (40,40,40), panel_rect)
         _sidebar_rects["tower_panel"] = panel_rect.copy()
 
@@ -241,25 +253,32 @@ def draw_sidebar(surf, level, player, wave_index, deck_count, is_placing_tower, 
         surf.blit(f.render("Q/E: Rotate Piece", True, (2,255,255)), (x, y)); y += 24
         surf.blit(f.render("Tab: Change Algorithm", True, (2,255,255)), (x, y)); y += 24
         surf.blit(f.render("Esc: Quit and Return to Map", True, (2,255,255)), (x, y)); y += 24
-        surf.blit(f.render("F1: (Dev) Instantly Win Level", True, (2,255,255)), (x, y)); y += 24
+        #surf.blit(f.render("F1: (Dev) Win Level", True, (2,255,255)), (x, y)); y += 24
+        #surf.blit(f.render("F2: (Dev) Place All Pieces", True, (2,255,255)), (x, y)); y += 24
+        surf.blit(f.render("S: Show/Hide Visited Nodes", True, (2,255,255)), (x, y))
+
+    # Move y to the position after the fixed-height contextual panel
+    y = context_panel_y_start + context_panel_height
 
     # Algorithm selection button
-    algo_rect = pygame.Rect(x, h - 160, sidebar_w - 2*padding, 30)
+    algo_rect = pygame.Rect(x, y, sidebar_w - 2*padding, 30)
     pygame.draw.rect(surf, (100, 100, 180), algo_rect, border_radius=6)
-    algo_text = f.render(f"Algo: {algorithm.upper()}", True, (255, 255, 255)) # This now works
+    algo_text = f.render(f"Algo: {algorithm.upper()}", True, (255, 255, 255))
     surf.blit(algo_text, (algo_rect.centerx - algo_text.get_width()//2, algo_rect.centery - algo_text.get_height()//2))
     _sidebar_rects["algo_button"] = algo_rect.copy()
 
     # Algorithm stats
     if path_stats:
-        font_stat = pygame.font.SysFont(DEFAULT_FONT_NAME, 14)
+        font_stat = pygame.font.SysFont(DEFAULT_FONT_NAME, 16)
         time_ms = path_stats.get("time_ms", 0)
         visited = path_stats.get("visited", 0)
-        surf.blit(font_stat.render(f"Time: {time_ms:.3f} ms", True, (180,180,180)), (x, h - 125))
-        surf.blit(font_stat.render(f"Nodes Visited: {visited}", True, (180,180,180)), (x, h - 110))
+        length = path_stats.get("length", 0)
+        surf.blit(font_stat.render(f"Execution Time: {time_ms:.3f} ms", True, (255,255,255)), (x, y + 40))
+        surf.blit(font_stat.render(f"Nodes Visited: {visited}", True, (255,255,255)), (x, y + 60))
+        surf.blit(font_stat.render(f"Path Length: {length}", True, (255,255,255)), (x, y + 80))
 
     # Start wave button
-    btn_rect = pygame.Rect(x, h - 80, sidebar_w - 2*padding, 48)
+    btn_rect = pygame.Rect(x, h - 58, sidebar_w - 2*padding, 48)
     pygame.draw.rect(surf, (100,180,100), btn_rect, border_radius=8)
     txt = pygame.font.SysFont(DEFAULT_FONT_NAME, 20, bold=True).render("Start Wave", True, (0,0,0))
     surf.blit(txt, (btn_rect.centerx - txt.get_width()//2, btn_rect.centery - txt.get_height()//2))

@@ -1,6 +1,6 @@
 import pygame, random, sys
 from enum import Enum
-from constants import *
+from constants import * # Imports EMPTY, OBSTACLE, FIXED_OBSTACLE, SWAMP, etc.
 from grid import cell_center, create_grid, set_cells, OBSTACLE, EMPTY, FIXED_OBSTACLE
 from piece import get_piece_shapes, rotate_piece, can_place_piece, get_absolute_cells
 from pathfinding import find_path
@@ -29,13 +29,13 @@ class FightScene:
         self.goal = (self.gw // 2, self.gh // 2)
         
         # Add random fixed obstacles
-        obstacle_chance = 0.1
+        obstacle_chance = 0.08
         for r in range(self.gh):
             for c in range(self.gw):
-                if self.grid[r][c] == EMPTY and random.random() < obstacle_chance:
-                    # Ensure start/goal and their neighbors are not blocked
-                    if abs(r - self.start[1]) > 1 or abs(c - self.start[0]) > 1:
-                        if abs(r - self.goal[1]) > 1 or abs(c - self.goal[0]) > 1:
+                # Ensure start/goal and their neighbors are not blocked
+                if abs(r - self.start[1]) > 1 or abs(c - self.start[0]) > 1:
+                    if abs(r - self.goal[1]) > 1 or abs(c - self.goal[0]) > 1:
+                        if self.grid[r][c] == EMPTY and random.random() < obstacle_chance:
                             self.grid[r][c] = FIXED_OBSTACLE
 
         self.enemies = []
@@ -80,6 +80,8 @@ class FightScene:
         self.time_elapsed = 0.0
         self.preview_path = None
         self.path_stats = {"time_ms": 0, "visited": 0} # For displaying pathfinding performance
+        self.visited_nodes_for_preview = set()
+        self.show_visited_nodes = False
     
         self._recompute_preview_path()
     # ===================
@@ -129,13 +131,21 @@ class FightScene:
             elif e.key == pygame.K_MINUS:
                 self.camera.zoom = max(0.6, self.camera.zoom - 0.1)
             elif e.key == pygame.K_TAB:
-                self._switch_algo()
+                mods = pygame.key.get_mods()
+                if mods & pygame.KMOD_SHIFT:
+                    self._switch_algo(direction=-1)
+                else:
+                    self._switch_algo(direction=1)
             elif e.key == pygame.K_SPACE:
                 self._start_wave_action()
             elif e.key == pygame.K_ESCAPE:
                 self._return_to_map()
             elif e.key == pygame.K_F1: # Dev key to win level
                 self._win_level()
+            elif e.key == pygame.K_F2: # Dev key to place all pieces
+                self._dev_auto_place_pieces()
+            elif e.key == pygame.K_s:
+                self.show_visited_nodes = not self.show_visited_nodes # Show/hide visited nodes
         elif e.type == pygame.MOUSEWHEEL:
             self.zoomimg(e)
         elif e.type == pygame.MOUSEBUTTONDOWN:
@@ -171,7 +181,7 @@ class FightScene:
             enemy_type, spawn_time = info
             if self.time_elapsed >= spawn_time:
                 e = create_enemy(enemy_type, self.start, self.goal)
-                path, _ = find_path(self.grid, e.pos, self.goal, self.pathfinding_algorithm)
+                path, _, _ = find_path(self.grid, e.pos, self.goal, self.pathfinding_algorithm)
                 e.set_path(path)
                 self.enemies.append(e)
                 self.spawn_queue.remove(info)
@@ -236,17 +246,19 @@ class FightScene:
                 test_grid = deepcopy(self.grid)
                 cells = get_absolute_cells(mouse_gx, mouse_gy, rotated)
                 set_cells(test_grid, cells, OBSTACLE)
-                new_path, _ = find_path(test_grid, self.start, self.goal, self.pathfinding_algorithm)
+                new_path, _, visited_for_preview = find_path(test_grid, self.start, self.goal, self.pathfinding_algorithm)
                 if new_path:
                     preview_path = new_path
                     preview_valid = True
+                    self.visited_nodes_for_preview = visited_for_preview
                 else:
                     preview_valid = False
         # Step 2: draw map with path
         draw_zoomed_map(screen, self.grid, self.camera,
             enemies=self.enemies, towers=self.towers,
             projectiles=self.projectiles,
-            draw_path=preview_path, is_path_valid=preview_valid
+            draw_path=preview_path, is_path_valid=preview_valid,
+            visited_nodes=self.visited_nodes_for_preview if self.show_visited_nodes else None
         )
         # Step 3: draw core icon
         cs = int(self.camera.cell_size * self.camera.zoom)
@@ -499,9 +511,9 @@ class FightScene:
                     self.hover_tower = t
                     break
 
-    def _switch_algo(self):
+    def _switch_algo(self, direction=1):
         """Cycles to the next pathfinding algorithm."""
-        self.algo_index = (self.algo_index + 1) % len(self.algorithms)
+        self.algo_index = (self.algo_index + direction) % len(self.algorithms)
         self.pathfinding_algorithm = self.algorithms[self.algo_index]
         self._recompute_preview_path()
         recompute_enemy_paths(self.enemies, self.grid, self.goal, self.pathfinding_algorithm)
@@ -530,9 +542,43 @@ class FightScene:
         from scenes.scene_map import MapScene
         self.game.change_scene(MapScene(self.game))
 
+    def _dev_auto_place_pieces(self):
+        """Developer hotkey to randomly place all pieces from the deck."""
+        print("DEV: Auto-placing all pieces...")
+        max_attempts_per_piece = 200
+        placed_count = 0
+
+        while self.deck:
+            piece_key = self.deck[0]
+            shape = self.pieces[piece_key]
+            placed = False
+
+            for _ in range(max_attempts_per_piece):
+                rotation = random.randint(0, 3)
+                rotated_shape = rotate_piece(shape, rotation)
+                gx = random.randint(0, self.gw - 1)
+                gy = random.randint(0, self.gh - 1)
+
+                if can_place_piece(self.grid, gx, gy, rotated_shape, self.start, self.goal, self.pathfinding_algorithm):
+                    cells = get_absolute_cells(gx, gy, rotated_shape)
+                    set_cells(self.grid, cells, piece_key)
+                    self.deck.pop(0)
+                    placed = True
+                    placed_count += 1
+                    break
+            
+            if not placed:
+                print(f"DEV: Could not find a valid spot for piece '{piece_key}'. Stopping.")
+                break # Stop if a piece can't be placed
+
+        self._select_new_piece()
+        self._recompute_preview_path()
+        recompute_enemy_paths(self.enemies, self.grid, self.goal, self.pathfinding_algorithm)
+        print(f"DEV: Placed {placed_count} pieces.")
+
     def _recompute_preview_path(self):
         """Calculates and caches the main preview path and its stats."""
-        self.preview_path, self.path_stats = find_path(self.grid, self.start, self.goal, self.pathfinding_algorithm)
+        self.preview_path, self.path_stats, self.visited_nodes_for_preview = find_path(self.grid, self.start, self.goal, self.pathfinding_algorithm)
 
 class Camera:
     def __init__(self, offset_x, offset_y, zoom, cell_size):

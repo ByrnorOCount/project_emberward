@@ -1,4 +1,4 @@
-EMPTY, OBSTACLE, FIXED_OBSTACLE = 0, 1, 2
+from constants import EMPTY, OBSTACLE, FIXED_OBSTACLE
 
 def create_grid(w, h):
     """Returns a 2D list initialized with EMPTY cells."""
@@ -10,7 +10,9 @@ def in_bounds(x, y, w, h):
     
 def is_walkable(grid, x, y):
     """Returns True if a cell is EMPTY and walkable."""
-    return in_bounds(x, y, len(grid[0]), len(grid)) and grid[y][x] == EMPTY
+    if not in_bounds(x, y, len(grid[0]), len(grid)):
+        return False
+    return grid[y][x] == EMPTY
     
 def set_cells(grid, cells, state):
     """Sets a list of (x,y) cells to the given state (EMPTY/OBSTACLE/TOWER)."""
@@ -25,3 +27,7 @@ def cell_center(x, y, cell_size):
 def get_neighbors4(x, y):
     """Returns 4-neighbor coordinates for A* pathfinding."""
     return [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
+
+def get_cost(grid, x, y):
+    """Returns the movement cost for a given cell."""
+    return 1 # Normal cost

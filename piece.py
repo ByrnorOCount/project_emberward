@@ -1,4 +1,4 @@
-from grid import OBSTACLE
+from constants import OBSTACLE
 from pathfinding import find_path
 def get_piece_shapes():
     """Returns dictionary of tetris-shaped pieces (list of relative coords)."""
@@ -54,7 +54,7 @@ def is_path_blocked(grid, cells, start, goal, algorithm="astar"):
     
     # A* returns a path of length > 1 if a path is found.
     # It returns [start] (length 1) or None if no path is found.
-    path, _ = find_path(temp_grid, start, goal, algorithm)
+    path, _, _ = find_path(temp_grid, start, goal, algorithm)
     return path is None
 
 def get_absolute_cells(gx, gy, cells):

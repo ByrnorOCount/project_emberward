@@ -1,5 +1,9 @@
 import pygame
 
+EMPTY = 0
+OBSTACLE = 1
+FIXED_OBSTACLE = 2
+
 # Default font for the game
 DEFAULT_FONT_NAME = "arial"
 DEFAULT_FONT_SIZE = 24
