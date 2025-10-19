@@ -3,6 +3,7 @@ from constants import *
 from tower import tower_data
 from piece import PIECE_COLORS
 from grid import EMPTY, FIXED_OBSTACLE, cell_center
+from assets import get_assets
 
 # -----------------------------
 # Grid & map drawing
@@ -29,7 +30,18 @@ def draw_zoomed_map(surf, grid, camera, enemies=None, towers=None, projectiles=N
     """Draw the fight grid, enemies, towers, projectiles at zoomed scale with camera offset."""
     cs = int(camera.cell_size * camera.zoom)
     gw, gh = len(grid[0]), len(grid)
+
+    assets = get_assets()
+    bg_image = assets["background"]
+
     temp = pygame.Surface((gw * cs, gh * cs))
+
+    if bg_image:
+        bg_scaled = pygame.transform.scale(bg_image, (gw * cs, gh * cs))
+        temp.blit(bg_scaled, (0, 0))
+    else:
+        temp.fill((30, 30, 30))
+
     from piece import get_piece_shapes
     draw_grid(temp, grid, cs, get_piece_shapes())
 
@@ -72,7 +84,15 @@ def draw_zoomed_map(surf, grid, camera, enemies=None, towers=None, projectiles=N
         for e in enemies:
             px, py = cell_center(e.pos[0], e.pos[1], cs)
             r = max(4, cs // 3)
-            pygame.draw.circle(temp, e.color, (px, py), r)
+
+            if hasattr(e, "image") and e.image:
+                # Scale image to match cell size (optional)
+                img = pygame.transform.scale(e.image, (cs, cs))
+                rect = img.get_rect(center=(px, py))
+                temp.blit(img, rect)
+            else:
+                # Fallback: draw circle if image missing
+                pygame.draw.circle(temp, e.color, (px, py), r)
 
             # Draw health bar
             if e.hp < e.max_hp:

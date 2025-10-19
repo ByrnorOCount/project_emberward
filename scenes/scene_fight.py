@@ -7,6 +7,7 @@ from pathfinding import find_path
 from enemy import update_enemies, create_enemy, recompute_enemy_paths
 from tower import can_place_tower, update_towers, create_tower
 from render.render_fight import draw_zoomed_map, draw_tower_preview, draw_piece_preview, tower_list_click_test, sidebar_click_test, draw_projectiles, draw_sidebar, draw_tower_range
+from sound_manager import play_music, play_sound
 
 class FightScene:
     def __init__(self, game, level):

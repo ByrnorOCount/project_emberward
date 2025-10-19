@@ -1,5 +1,7 @@
 import json, os
 from pathfinding import find_path
+from assets import get_assets
+from sound_manager import play_sound
 
 # Load enemy archetypes
 with open(os.path.join("data", "enemies.json")) as f:
@@ -18,6 +20,8 @@ class Enemy:
         self.gold = data["gold"]
         self.etype = etype     # e.g. "fast", "tank", "basic"
         self.color = tuple(data["color"])
+        assets = get_assets()
+        self.image = assets["enemies"].get(etype)
 
     def set_path(self, path):
         """Assign a new path and reset progress."""
@@ -48,7 +52,11 @@ class Enemy:
         return len(self.path) <= 1 and self.pos == self.goal
 
     def is_dead(self):
-        return self.hp <= 0
+        isDead = self.hp <= 0
+        if (isDead):
+            play_sound("enemy_die.mp3")
+            return True
+        return False
 
 ENEMY_CLASSES = {
     "basic": Enemy, 

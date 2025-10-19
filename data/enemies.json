@@ -4,8 +4,8 @@
       "id": "basic",
       "name": "Grunt",
       "hp": 100,
-      "speed": 3,
-      "gold": 6,
+      "speed": 1.5,
+      "gold": 10,
       "color": [255, 200, 50]
     },
     {
@@ -13,7 +13,7 @@
       "name": "Runner",
       "hp": 50,
       "speed": 5,
-      "gold": 3,
+      "gold": 5,
       "color": [255, 160, 40]
     },
     {

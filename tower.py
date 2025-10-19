@@ -1,4 +1,5 @@
 import json, os, math
+from assets import get_assets
 
 # Load tower data from JSON
 with open(os.path.join("data", "towers.json")) as f:
@@ -19,6 +20,8 @@ class Tower:
         self.color = tuple(data["color"])
         self.cooldown = 0.0
         self.kills = 0
+        assets = get_assets()
+        self.image = assets["towers"].get(tower_id)
 
     def in_range(self, enemy):
         """Distance uses grid units (cells). Enemy.pos is (x,y) in grid coords."""

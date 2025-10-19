@@ -3,6 +3,7 @@ import math
 from run_state import advance_to_next_level
 from render.render_map import draw_map
 from .scene_fight import FightScene
+from sound_manager import play_music, play_sound
 
 class MapScene:
     def __init__(self, game):
