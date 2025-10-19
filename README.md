@@ -33,13 +33,14 @@ The core gameplay loop combines maze-building and tower defense with roguelite p
 - **Dynamic Pathfinding**: Enemies constantly recalculate their path to your core as you build your maze. Switch between four different algorithms on the fly:
   - **A***: An intelligent, efficient search that balances path length and distance to the goal.
   - **Dijkstra**: Finds the absolute shortest path, but explores more nodes than A*.
-  - **Greedy Best-First**: A "shortsighted" algorithm that always moves to the node closest to the goal, which may not be the optimal path.
+  - **Greedy Best-First**: A "shortsighted" algorithm that always moves to the node that the heuristic estimates is closest to the goal. It's very fast but often finds a suboptimal, longer path because it can be lured down long winding roads that seem to head in the right direction.
   - **DFS**: A simple depth-first search that finds a path, but often a very inefficient one.
 - **Tetris-like Maze Building**: Use a deck of familiar puzzle pieces to construct your defenses. You can't block the path completely!
 - **Multiple Tower Types**: Deploy different towers, each with its own cost, damage, range, and fire rate.
 - **Wave-Based Survival**: Face increasingly challenging waves of enemies with varying stats.
 - **Roguelite Progression**: Move between level on a map, with your core HP persisting between fights. Each level provides a set amount of gold for the battle.
 - **Interactive UI**: A clean sidebar provides all necessary information, including gold, core HP, wave status, and tower selection.
+- **Algorithm Performance Stats**: The sidebar displays real-time performance metrics for the currently selected pathfinding algorithm, including execution time (in milliseconds) and the number of grid nodes visited to find the path. This allows for direct comparison of their efficiency.
 
 ## How to Run
 

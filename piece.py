@@ -54,8 +54,8 @@ def is_path_blocked(grid, cells, start, goal, algorithm="astar"):
     
     # A* returns a path of length > 1 if a path is found.
     # It returns [start] (length 1) or None if no path is found.
-    path = find_path(temp_grid, start, goal, algorithm)
-    return not path or len(path) <= 1
+    path, _ = find_path(temp_grid, start, goal, algorithm)
+    return path is None
 
 def get_absolute_cells(gx, gy, cells):
     """Converts relative piece coords into absolute grid coords for placement."""

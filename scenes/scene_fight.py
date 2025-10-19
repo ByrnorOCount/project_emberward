@@ -19,7 +19,7 @@ class FightScene:
         self.gh = len(self.grid)
 
         # Pathfinding algorithm
-        self.algorithms = ["astar", "dijkstra", "greedy_bfs", "dfs"]
+        self.algorithms = ["astar", "ucs", "greedy_bfs", "dfs"]
         self.algo_index = 0
         self.pathfinding_algorithm = self.algorithms[self.algo_index]
 
@@ -77,7 +77,10 @@ class FightScene:
         
         self.spawn_queue = []  # list of (EnemyClass, spawn_time)
         self.time_elapsed = 0.0
+        self.preview_path = None
+        self.path_stats = {"time_ms": 0, "visited": 0} # For displaying pathfinding performance
     
+        self._recompute_preview_path()
     # ===================
     # Core Logic 
     # ===================
@@ -167,7 +170,8 @@ class FightScene:
             enemy_type, spawn_time = info
             if self.time_elapsed >= spawn_time:
                 e = create_enemy(enemy_type, self.start, self.goal)
-                e.set_path(find_path(self.grid, e.pos, self.goal, self.pathfinding_algorithm))
+                path, _ = find_path(self.grid, e.pos, self.goal, self.pathfinding_algorithm)
+                e.set_path(path)
                 self.enemies.append(e)
                 self.spawn_queue.remove(info)
         # update enemies movement
@@ -218,7 +222,7 @@ class FightScene:
     def render(self, screen):
         screen.fill((18, 18, 18))
         # Step 1: compute preview path/validity
-        preview_path = find_path(self.grid, self.start, self.goal, self.pathfinding_algorithm)  # added pathfinding_algorithm
+        preview_path = self.preview_path
         preview_valid = True
         mx, my = pygame.mouse.get_pos()
         mouse_gx, mouse_gy = self._screen_to_grid(mx, my)
@@ -231,7 +235,7 @@ class FightScene:
                 test_grid = deepcopy(self.grid)
                 cells = get_absolute_cells(mouse_gx, mouse_gy, rotated)
                 set_cells(test_grid, cells, OBSTACLE)
-                new_path = find_path(test_grid, self.start, self.goal, self.pathfinding_algorithm)
+                new_path, _ = find_path(test_grid, self.start, self.goal, self.pathfinding_algorithm)
                 if new_path:
                     preview_path = new_path
                     preview_valid = True
@@ -288,7 +292,7 @@ class FightScene:
         self.deck_count = len(self.deck)
         draw_sidebar(screen, self.level, self.player, self.wave_index, self.deck_count,
                      self.placement_mode == "tower", selected_tower=self.clicked_tower,
-                     algorithm=self.pathfinding_algorithm)
+                     algorithm=self.pathfinding_algorithm, path_stats=self.path_stats)
         # Step 8: flip
         if self.phase == Phase.GameOver:
             s = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
@@ -346,6 +350,7 @@ class FightScene:
             if self.deck:
                 self.deck.pop(0)
             self._select_new_piece()
+            self._recompute_preview_path()
             self.deck_count = len(self.deck)
             recompute_enemy_paths(self.enemies, self.grid, self.goal, self.pathfinding_algorithm)
 
@@ -396,11 +401,9 @@ class FightScene:
         if outside_grid:
             return
         if self.placement_mode == "tower":
-            self._place_tower(gx, gy)
-            recompute_enemy_paths(self.enemies, self.grid, self.goal)
+            self._place_tower(gx, gy) # This already calls recompute_enemy_paths
         elif self.placement_mode == "piece" and self.current_piece_key:
-            self._place_piece(gx, gy)
-            recompute_enemy_paths(self.enemies, self.grid, self.goal)
+            self._place_piece(gx, gy) # This already calls recompute_enemy_paths
         else: # neutral mode
             self._select_existing_tower(gx, gy)
 
@@ -499,10 +502,15 @@ class FightScene:
         """Cycles to the next pathfinding algorithm."""
         self.algo_index = (self.algo_index + 1) % len(self.algorithms)
         self.pathfinding_algorithm = self.algorithms[self.algo_index]
+        self._recompute_preview_path()
         recompute_enemy_paths(self.enemies, self.grid, self.goal, self.pathfinding_algorithm)
 
     def _win_level(self):
         """Developer hotkey action to instantly win the level."""
+        # First, ensure the preview path is computed for the final state if needed
+        if self.preview_path is None:
+            self._recompute_preview_path()
+
         print("DEV: Instantly winning level.")
         for level_node in self.run_state.levels:
             if level_node["id"] == self.run_state.current_level_id:
@@ -520,6 +528,10 @@ class FightScene:
         self.run_state.player.hp = self.player.hp
         from scenes.scene_map import MapScene
         self.game.change_scene(MapScene(self.game))
+
+    def _recompute_preview_path(self):
+        """Calculates and caches the main preview path and its stats."""
+        self.preview_path, self.path_stats = find_path(self.grid, self.start, self.goal, self.pathfinding_algorithm)
 
 class Camera:
     def __init__(self, offset_x, offset_y, zoom, cell_size):

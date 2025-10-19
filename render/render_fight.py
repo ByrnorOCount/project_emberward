@@ -152,7 +152,7 @@ _sidebar_rects = {
     "algo_button": None,
 }
 
-def draw_sidebar(surf, level, player, wave_index, deck_count, is_placing_tower, selected_tower=None, algorithm="astar"):
+def draw_sidebar(surf, level, player, wave_index, deck_count, is_placing_tower, selected_tower=None, algorithm="astar", path_stats=None):
     w, h = surf.get_size()
     sidebar_w = 260
     rect = pygame.Rect(w - sidebar_w, 0, sidebar_w, h)
@@ -224,11 +224,19 @@ def draw_sidebar(surf, level, player, wave_index, deck_count, is_placing_tower, 
         surf.blit(f.render("F1: (Dev) Instantly Win Level", True, (2,255,255)), (x, y)); y += 24
 
     # Algorithm selection button
-    algo_rect = pygame.Rect(x, h - 140, sidebar_w - 2*padding, 30)
+    algo_rect = pygame.Rect(x, h - 160, sidebar_w - 2*padding, 30)
     pygame.draw.rect(surf, (100, 100, 180), algo_rect, border_radius=6)
     algo_text = f.render(f"Algo: {algorithm.upper()}", True, (255, 255, 255)) # This now works
     surf.blit(algo_text, (algo_rect.centerx - algo_text.get_width()//2, algo_rect.centery - algo_text.get_height()//2))
     _sidebar_rects["algo_button"] = algo_rect.copy()
+
+    # Algorithm stats
+    if path_stats:
+        font_stat = pygame.font.SysFont(DEFAULT_FONT_NAME, 14)
+        time_ms = path_stats.get("time_ms", 0)
+        visited = path_stats.get("visited", 0)
+        surf.blit(font_stat.render(f"Time: {time_ms:.3f} ms", True, (180,180,180)), (x, h - 125))
+        surf.blit(font_stat.render(f"Nodes Visited: {visited}", True, (180,180,180)), (x, h - 110))
 
     # Start wave button
     btn_rect = pygame.Rect(x, h - 80, sidebar_w - 2*padding, 48)

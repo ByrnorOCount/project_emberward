@@ -1,5 +1,6 @@
 # pathfinding.py
 # added algorithms to switch
+import time
 
 from heapq import heappush, heappop
 from grid import is_walkable, get_neighbors4
@@ -9,13 +10,14 @@ def astar(grid, start, goal):
     """Computes shortest path from start to goal using A* on grid."""
     # 0. Check if goal is walkable from the start
     if not is_walkable(grid, *goal):
-        return None
+        return None, 0
 
     # 1. Initialize data structure
     openq = []
     heappush(openq, (0, start)) # (f_score, node)
     came_from = {}
     g_score = {start: 0}
+    visited_count = 0
 
     while openq:
         # 2. Get the most promising node
@@ -31,7 +33,7 @@ def astar(grid, start, goal):
                 c = came_from[c]
             path.append(start)
             path.reverse()
-            return path
+            return path, visited_count
 
         # 4. Explore neighbors
         for neighbor in get_neighbors4(*current):
@@ -47,18 +49,20 @@ def astar(grid, start, goal):
                 f_score = tentative_g_score + heuristic(neighbor, goal)
                 heappush(openq, (f_score, neighbor))
                 came_from[neighbor] = current
+                visited_count += 1
 
     # 7. No path found
-    return None
+    return None, visited_count
 
-# Dijkstra
-def dijkstra(grid, start, goal):
-    """Computes the shortest path from start to goal using Dijkstra's algorithm."""
+# UCS (Uniform Cost Search) - Functionally identical to Dijkstra on a grid with uniform costs.
+def ucs(grid, start, goal):
+    """Computes the shortest path from start to goal using Uniform Cost Search."""
     if not is_walkable(grid, *goal):
-        return None
+        return None, 0
     openq = [(0, start)]
     came_from = {}
     g_score = {start: 0}
+    visited_count = 0
     while openq:
         current_cost, current_node = heappop(openq)
         if current_node == goal:
@@ -69,7 +73,7 @@ def dijkstra(grid, start, goal):
                 c = came_from[c]
             path.append(start)
             path.reverse()
-            return path
+            return path, visited_count
         if current_cost > g_score.get(current_node, float('inf')):
             continue
 
@@ -80,14 +84,15 @@ def dijkstra(grid, start, goal):
             if new_cost < g_score.get(neighbor, float('inf')):
                 g_score[neighbor] = new_cost
                 came_from[neighbor] = current_node
+                visited_count += 1
                 heappush(openq, (new_cost, neighbor))
-    return None
+    return None, visited_count
 
 # greedy BFS
 def greedy_bfs(grid, start, goal):
     """Greedy Best-First Search. Chooses path based only on closeness to goal."""
     if not is_walkable(grid, *goal):
-        return None
+        return None, 0
     openq = []
     heappush(openq, (heuristic(start, goal), start))
     came_from = {}
@@ -102,26 +107,26 @@ def greedy_bfs(grid, start, goal):
                 c = came_from[c]
             path.append(start)
             path.reverse()
-            return path
+            return path, len(visited)
 
         for neighbor in get_neighbors4(*current):
             if is_walkable(grid, *neighbor) and neighbor not in visited:
                 visited.add(neighbor)
                 came_from[neighbor] = current
                 heappush(openq, (heuristic(neighbor, goal), neighbor))
-    return None
+    return None, len(visited)
 
 # DFS
 def dfs(grid, start, goal):
     """Depth-First Search. Finds a path, but it will be long and inefficient."""
     if not is_walkable(grid, *goal):
-        return None
+        return None, 0
     stack = [(start, [start])]
     visited = {start}
     while stack:
         current, path = stack.pop()
         if current == goal:
-            return path
+            return path, len(visited)
 
         for neighbor in get_neighbors4(*current):
             if is_walkable(grid, *neighbor) and neighbor not in visited:
@@ -129,23 +134,32 @@ def dfs(grid, start, goal):
                 new_path = list(path)
                 new_path.append(neighbor)
                 stack.append((neighbor, new_path))
-    return None
+    return None, len(visited)
 
 def heuristic(a, b):
     """Manhattan distance heuristic for A*."""
     return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
 def find_path(grid, start, goal, algorithm="astar"):
-    """General function to find a path using a specified algorithm."""
+    """
+    General function to find a path using a specified algorithm.
+    Returns a tuple: (path, stats_dict)
+    """
+    start_time = time.perf_counter()
+    path, visited_nodes = None, 0
+
     if algorithm == "astar":
-        return astar(grid, start, goal)
-    elif algorithm == "dijkstra":
-        return dijkstra(grid, start, goal)
+        path, visited_nodes = astar(grid, start, goal)
+    elif algorithm == "ucs":
+        path, visited_nodes = ucs(grid, start, goal)
     elif algorithm == "greedy_bfs":
-        return greedy_bfs(grid, start, goal)
+        path, visited_nodes = greedy_bfs(grid, start, goal)
     elif algorithm == "dfs":
-        return dfs(grid, start, goal)
+        path, visited_nodes = dfs(grid, start, goal)
     else:
-        # Fallback to A* if an unknown algorithm is provided
         print(f"Warning: Unknown algorithm '{algorithm}', defaulting to A*.")
-        return astar(grid, start, goal)
+        path, visited_nodes = astar(grid, start, goal)
+
+    end_time = time.perf_counter()
+    stats = {"time_ms": (end_time - start_time) * 1000, "visited": visited_nodes}
+    return path, stats

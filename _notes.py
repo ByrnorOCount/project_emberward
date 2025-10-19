@@ -6,12 +6,12 @@
 # victory screen upon clearing all waves in the level, prompts to press any key to move back to map - Done
 # show levels not yet accessible as gray/locked - Done
 # dev hotkey to win level instantly - Done
-# VVV Future Ideas VVV
+# VVV Future Ideas VVV (not required so ignore for now)
 # add a third level?
 # have at least 5 waves to each level?
 # upgrade towers?
 # more towers and enemies?
-# sound effects, music, assets?
+# sound effects, music, assets? - Done
 # display incoming wave?
 
 # main.py
